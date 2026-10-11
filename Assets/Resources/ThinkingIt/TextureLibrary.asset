@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 705ff34a26806f443a5f5106da10501e, type: 3}
+  m_Name: TextureLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkingIt.TextureLibrary
+  barkWillow:
+    diff: {fileID: 2800000, guid: 7fee7d08d1f0cee48b163f07b2a92687, type: 3}
+    nor: {fileID: 2800000, guid: 65b5e1fb5759e3b4eac4489defb3b04f, type: 3}
+    rough: {fileID: 2800000, guid: d16ef0d94da15734390998ca5e3c3ef2, type: 3}
+  beigeWall:
+    diff: {fileID: 2800000, guid: 4eb6986472336ff41b1083cc3ce4949e, type: 3}
+    nor: {fileID: 2800000, guid: ad8890e36db05254e9c6138d3d2b98c0, type: 3}
+    rough: {fileID: 2800000, guid: 64384e51b045d5f40b9880474c6497e8, type: 3}
+  brownLeather:
+    diff: {fileID: 2800000, guid: 4a5d7ac3901d54443af82ddad7d30089, type: 3}
+    nor: {fileID: 2800000, guid: 040942be9344fdb4ea22277262e73e82, type: 3}
+    rough: {fileID: 2800000, guid: 0efbde9c003b23643bae73ca74492d2c, type: 3}
+  brownPlanks:
+    diff: {fileID: 2800000, guid: 82ce9c426f0dfc242807e16ebda02e9d, type: 3}
+    nor: {fileID: 2800000, guid: ea3a66f4b0549814b839f5da47111cd0, type: 3}
+    rough: {fileID: 2800000, guid: 8006d465977d1e549a618e7684718bad, type: 3}
+  brushedConcrete:
+    diff: {fileID: 2800000, guid: 842d403e248e61945a50ef8db0026844, type: 3}
+    nor: {fileID: 2800000, guid: e8241df55ad3756468d4228afad5d4f2, type: 3}
+    rough: {fileID: 2800000, guid: 32912a175867e9c40a1df0ecc3d59bdb, type: 3}
+  ceilingInterior:
+    diff: {fileID: 2800000, guid: a3257c85a7560d64aa16d76b9c034dbd, type: 3}
+    nor: {fileID: 2800000, guid: c17e1a2ca2e6deb49ad380d9179f1b54, type: 3}
+    rough: {fileID: 2800000, guid: 96db08d63c812184d9e1b410b8082a39, type: 3}
+  coastSand:
+    diff: {fileID: 2800000, guid: 0cd5453ea3f70bf44805decd2e092735, type: 3}
+    nor: {fileID: 2800000, guid: f334cc8aa02430645a6f1761a448dd4b, type: 3}
+    rough: {fileID: 2800000, guid: 286a7a06c46a3054d9285163c9dbdc9f, type: 3}
+  darkWoodenPlanks:
+    diff: {fileID: 2800000, guid: 5470947f6b997314a80d79800bb14c22, type: 3}
+    nor: {fileID: 2800000, guid: f74cd37eecefe4c41b957623730d41c1, type: 3}
+    rough: {fileID: 2800000, guid: 7835e325ef5242d4c8f51704644a04ec, type: 3}
+  decrepitWallpaper:
+    diff: {fileID: 2800000, guid: 6d63d1c4bc23be1488cfb265197706e5, type: 3}
+    nor: {fileID: 2800000, guid: 8fa371cea2ca6d14a92adb43c00c2c94, type: 3}
+    rough: {fileID: 2800000, guid: 7bbb246c4074d064fa2dc5e38ac435b7, type: 3}
+  greyRoofTiles:
+    diff: {fileID: 2800000, guid: 36f478a0813af9445b69a88115a61958, type: 3}
+    nor: {fileID: 2800000, guid: 713bf6317838cf0408434d7900fcd1b7, type: 3}
+    rough: {fileID: 2800000, guid: 74a815139fd52dd48bc2e1832a15bfb6, type: 3}
+  laminateFloor:
+    diff: {fileID: 2800000, guid: ede60c3204fe782438140f6767c19fda, type: 3}
+    nor: {fileID: 2800000, guid: f3d162e493860424cac8d8ca9535795e, type: 3}
+    rough: {fileID: 2800000, guid: 5aad80a6ba329f446817752984aea988, type: 3}
+  leafyGrass:
+    diff: {fileID: 2800000, guid: 7f4e839c598956a4eae06a1f150d4670, type: 3}
+    nor: {fileID: 2800000, guid: 538da84072ad63c428daa567e7eb9b12, type: 3}
+    rough: {fileID: 2800000, guid: 23aab9d5f656ec1449504ed26dea04bd, type: 3}
+  metalPlate:
+    diff: {fileID: 2800000, guid: 361691c5995a43347b5100aac4613dac, type: 3}
+    nor: {fileID: 2800000, guid: 3f8cbbeeb650394418c9acafd30bbf4e, type: 3}
+    rough: {fileID: 2800000, guid: 52b3ea228e95782488a73bc73a00ef85, type: 3}
+  oldLinoleum:
+    diff: {fileID: 2800000, guid: 198c6e2ce29030443b25eb70a5628ebe, type: 3}
+    nor: {fileID: 2800000, guid: 97733cc73dfaed7428b98bcb99ed3588, type: 3}
+    rough: {fileID: 2800000, guid: a854789402436eb46bf686fe92e8180e, type: 3}
+  rustyMetal:
+    diff: {fileID: 2800000, guid: cc835d002555d9d4db64a2e4eaa38a80, type: 3}
+    nor: {fileID: 2800000, guid: 5efbe8611784b5e46890aa01420ebb95, type: 3}
+    rough: {fileID: 2800000, guid: 8ac9f3c090f36a44faf97d133d09f7a4, type: 3}
+  skyHdr: {fileID: 0}
+  skyHdrTex: {fileID: 0}
