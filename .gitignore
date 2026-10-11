@@ -38,3 +38,8 @@ sysinfo.txt
 *.aab
 *.unitypackage
 crashlytics-build.properties
+
+# Unity Test Framework leftovers written during builds
+/[Aa]ssets/[Rr]esources/PerformanceTestRun*
+# old Brotli web build files (GitHub Pages cannot serve them)
+/docs/Build/*.br
