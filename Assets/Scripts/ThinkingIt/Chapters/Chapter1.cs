@@ -213,9 +213,9 @@ namespace ThinkingIt
 
             // The isolation room door, another thing you have to look at to believe
             var idr = Grp("iso door");
-            foreach (var b in new[] { (-0.85f, 1.3f, 0f, 0.15f, 2.6f, 2 * C), (0.85f, 1.3f, 0f, 0.15f, 2.6f, 2 * C), (0f, 2.65f, 0f, 1.85f, 0.15f, 2 * C) })
+            foreach (var b in new[] { (-0.85f, 1.3f, 0f, 0.15f, 2.6f, C), (0.85f, 1.3f, 0f, 0.15f, 2.6f, C), (0f, 2.65f, 0f, 1.85f, 0.15f, C) })
                 Bx(b.Item4, b.Item5, b.Item6, null, idr).At(b.Item1, b.Item2, b.Item3);
-            idr.At(cx(3), 0, cx(14)).RotY(PI / 2);
+            idr.At(cx(3), 0, cx(14));
             isoDoor = AddFocusable("door", idr, new[] { new Vector2Int(3, 14) }, new Vector3(cx(3), 1.4f, cx(14)), 3.2f, Std(0x8a8e84));
 
             // Furniture, documents, the lever, the recorder
@@ -237,6 +237,23 @@ namespace ThinkingIt
             };
             var paper = PaperTex();
             desk(4, 2, 0); doc(4, 2, "brochure", paper);
+            {   // the orientation terminal on the reception desk: a green screen that explains the rules
+                var termScr = Paint(128, 96, (pp, Wt, Ht) =>
+                {
+                    pp.Fill(Col(0x041a0b));
+                    pp.Text("HALVARD", Wt / 2f, 26, 13, Col(0x45ff85), TexText.Face.Mono, true, false, 1);
+                    pp.Text("ORIENTATION", Wt / 2f, 46, 11, Col(0x45ff85), TexText.Face.Mono, false, false, 1);
+                    pp.Text("> PRESS E_", Wt / 2f, 74, 10, Col(0x2fc860), TexText.Face.Mono, false, false, 1);
+                });
+                var orientTerm = Grp("terminal");
+                Bx(0.42f, 0.36f, 0.4f, Std(0xc8c2ae, 0.6f), orientTerm).At(0, 0.18f, 0);
+                Pl(0.32f, 0.25f, Mats.Unlit(Color.white, termScr), orientTerm).At(0, 0.19f, 0.205f);
+                Bx(0.42f, 0.03f, 0.14f, Std(0xc8c2ae, 0.6f), orientTerm).At(0, 0.015f, 0.33f);
+                orientTerm.At(cx(4) + 0.5f, 0.8f, cx(2) - 0.12f).RotY(-0.15f);
+                World.Tagged(orientTerm, "doc", "tutorial");
+                AddInteract("doc", "doc", "tutorial", orientTerm.transform.position + new Vector3(0, 0.2f, 0), orientTerm, "use the terminal");
+                w.PointLight(orientTerm.transform.position + new Vector3(0, 0.45f, 0.5f), Col(0x40ff80), 0.2f, 3f);
+            }
             desk(10, 5, 0); doc(10, 5, "teoNote", paper);
             desk(23, 2, 0); doc(23, 2, "session41", paper);
             desk(27, 6, 0.4f); doc(27, 6, "memo", paper);
@@ -260,7 +277,7 @@ namespace ThinkingIt
             };
             fuse("f1", new Vector3(9 * C - 0.3f, 0.66f, cx(12) + 0.85f));   // ward: on a bedside cabinet
             fuse("f2", new Vector3(cx(22) + 0.3f, 0.84f, cx(5)));    // offices: on the maintenance desk
-            fuse("f3", new Vector3(cx(2) + 0.3f, 0.06f, cx(15)));    // isolation: on the floor, in the corner
+            fuse("f3", new Vector3(cx(2) + 0.3f, 0.04f, cx(15)));    // isolation: on the floor, in the corner
 
             // the breaker lever
             var lever = Grp("lever");
@@ -272,7 +289,7 @@ namespace ThinkingIt
                 var fs = Cy(0.035f, 0.035f, 0.16f, 10, Mats.Std(MathX.Hex(0xd8d0b0), 0.4f, 0, null, null, null, 1, MathX.Hex(0xffb040), 0.6f, false, false), lever).At(-0.28f + i * 0.28f, 1.75f, 0.21f).Rot(0, 0, PI / 2);
                 fs.SetActive(false); fuseSlots.Add(fs);
             }
-            lever.At(cx(28) + 0.6f, 0, cx(13)).RotY(-PI / 2);
+            lever.At(29 * C - 0.16f, 0, cx(13)).RotY(-PI / 2);
             World.Tagged(lever, "lever");
             leverIt = AddInteract("lever", "lever", null, new Vector3(cx(28), 1.2f, cx(13)), lever, "pull the lever");
 
@@ -296,7 +313,7 @@ namespace ThinkingIt
             var plastic = Std(0x5a6a70, 0.7f); var cream = Std(0xd8d2bc, 0.6f); var rubber = Std(0x1a1a1a, 0.9f);
             System.Func<GameObject, int, int, GameObject> add = (o, sx, sy) => Prop(o, sx, sy);
 
-            w.Skirting(rubber, "#TDX");
+            w.Skirting(rubber, "#TX");
 
             // pipes and ducts along the corridor ceiling
             foreach (var p in new[] { (3 * C + 0.35f, 0.06f, 0x6a5a4a), (3 * C + 0.6f, 0.04f, 0x7a7e80), (6 * C - 0.4f, 0.14f, 0x8a8e90) })
@@ -365,7 +382,9 @@ namespace ThinkingIt
                 g2.Text("UNSAFE", W2 / 2, 64, 9, Col(0x111111), TexText.Face.Sans, false, false, 1);
             });
             var signM = Mats.Std(Color.white, 0.6f, 0, signTex, null, null, 1, null, 1, true);
-            foreach (var s in new[] { -1, 1 }) Pl(0.32f, 0.6f, signM, caution).At(0, 0.3f, s * 0.1f).Rot(s * 0.17f, s < 0 ? PI : 0, 0);
+            // an A-frame: two boards leaning in so their tops meet (they used to lean apart, an upside-down V)
+            foreach (var s in new[] { -1, 1 }) Pl(0.32f, 0.6f, signM, caution).At(0, 0.3f, s * 0.055f).Rot(-s * 0.17f, s < 0 ? PI : 0, 0);
+            Bx(0.34f, 0.03f, 0.03f, Std(0x1a1a1a, 0.6f), caution).At(0, 0.6f, 0);   // the hinge along the top
             caution.At(cx(12) - 0.2f, 0, cx(3) + 0.3f).RotY(0.4f); add(caution, -1, -1);
 
             // ---- Offices: filing cabinets, office chairs, old computers, a whiteboard ----
@@ -389,9 +408,9 @@ namespace ThinkingIt
                 var g = Grp("office chair");
                 Bx(0.48f, 0.08f, 0.46f, Std(0x2a2a30, 0.8f), g).At(0, 0.48f, 0);
                 Bx(0.46f, 0.5f, 0.06f, Std(0x2a2a30, 0.8f), g).At(0, 0.8f, -0.22f);
-                Cy(0.03f, 0.03f, 0.4f, 8, metal, g).At(0, 0.26f, 0);
-                for (int i = 0; i < 5; i++) { float a = i / 5f * PI * 2; Bx(0.03f, 0.03f, 0.3f, metal, g).At(Mathf.Sin(a) * 0.15f, 0.06f, Mathf.Cos(a) * 0.15f).RotY(a); }
-                g.At(x, tipped ? 0.25f : 0, z).Rot(tipped ? PI / 2 : 0, rot, 0); return g;
+                Cy(0.03f, 0.03f, 0.44f, 8, metal, g).At(0, 0.24f, 0);
+                for (int i = 0; i < 5; i++) { float a = i / 5f * PI * 2; Bx(0.03f, 0.03f, 0.3f, metal, g).At(Mathf.Sin(a) * 0.15f, 0.015f, Mathf.Cos(a) * 0.15f).RotY(a); }
+                g.At(x, tipped ? 0.34f : 0, z).Rot(tipped ? PI / 2 : 0, rot, 0); return g;
             };
             add(officeChair(cx(23), cx(2) + 0.85f, PI + 0.3f, false), -1, -1); add(officeChair(cx(22) + 0.4f, cx(5) + 0.9f, 2.6f, true), -1, -1);
             add(officeChair(cx(27) - 0.2f, cx(6) + 0.9f, PI - 0.2f, false), -1, -1); add(officeChair(cx(13), cx(11) + 0.85f, PI + 0.4f, false), -1, -1);
@@ -399,11 +418,11 @@ namespace ThinkingIt
             {
                 var g = Grp("crt");
                 Bx(0.42f, 0.36f, 0.4f, Std(0xc8c2ae, 0.6f), g).At(0, 0.18f, 0);
-                Pl(0.32f, 0.25f, Mats.Std(MathX.Hex(0x101414), 0.1f, 0.3f), g).At(0, 0.19f, 0.201f);
-                Bx(0.42f, 0.03f, 0.14f, Std(0xc8c2ae, 0.6f), g).At(0, 0, 0.33f);
+                Pl(0.32f, 0.25f, Mats.Std(MathX.Hex(0x101414), 0.1f, 0.3f), g).At(0, 0.19f, 0.205f);
+                Bx(0.42f, 0.03f, 0.14f, Std(0xc8c2ae, 0.6f), g).At(0, 0.015f, 0.33f);
                 g.At(x, 0.8f, z).RotY(rot); return g;
             };
-            crt(cx(23) + 0.35f, cx(2) - 0.15f, 0.2f); crt(cx(22), cx(5) - 0.15f, -0.3f);
+            crt(cx(23) + 0.5f, cx(2) - 0.2f, 0.2f); crt(cx(22), cx(5) - 0.15f, -0.3f);
             var wb = Grp("whiteboard");
             Bx(1.8f, 1.1f, 0.04f, Mats.Std(MathX.Hex(0x8a8e90), 0.4f, 0.5f), wb);
             Pl(1.7f, 1.0f, Mats.Std(Color.white, 0.3f, 0, WhiteboardTex()), wb).At(0, 0, 0.025f);
@@ -423,8 +442,8 @@ namespace ThinkingIt
             for (int i = 0; i < 5; i++) To(0.82f, 0.04f, 6, 24, darkMetal, gen).At(-1.2f + i * 0.6f, 0.95f, 0).RotY(PI / 2);
             for (int i = 0; i < 3; i++)
             {
-                Cy(0.1f, 0.1f, 0.04f, 20, Std(0xe8e4d8, 0.4f), gen).At(-0.6f + i * 0.6f, 1.4f, 0.82f).Rot(PI / 2, 0, 0);
-                Bx(0.01f, 0.08f, 0.01f, Std(0xb01010, 0.4f), gen).At(-0.6f + i * 0.6f, 1.42f, 0.85f).Rot(0, 0, -0.6f + i * 0.5f);
+                Cy(0.1f, 0.1f, 0.04f, 20, Std(0xe8e4d8, 0.4f), gen).At(-0.9f + i * 0.6f, 0.95f, 0.83f).Rot(PI / 2, 0, 0);
+                Bx(0.01f, 0.08f, 0.01f, Std(0xb01010, 0.4f), gen).At(-0.9f + i * 0.6f, 0.97f, 0.86f).Rot(0, 0, -0.6f + i * 0.5f);
             }
             Cy(0.12f, 0.12f, 1.4f, 12, metal, gen).At(1.0f, 2.4f, -0.3f);
             gen.At(cx(22) + 1, 0, cx(11) + 0.2f); add(gen, 22, 11);
@@ -437,7 +456,7 @@ namespace ThinkingIt
             int[] barrelCols = { 0x2a4a6a, 0x6a2a1a, 0x3a4a2a };
             foreach (var b in new[] { (cx(27) + 0.4f, cx(15) + 0.3f), (cx(26) + 0.5f, cx(15) + 0.5f), (cx(21) - 0.3f, cx(15) + 0.4f) })
                 Cy(0.3f, 0.3f, 0.9f, 18, Mats.Std(MathX.Hex(MathX.Pick(barrelCols)), 0.5f, 0.4f)).At(b.Item1, 0.45f, b.Item2);
-            for (int i = 0; i < 2; i++) Bx(0.5f, 0.7f, 0.18f, Mats.Std(MathX.Hex(0x6a6e64), 0.5f, 0.4f)).At(cx(28) + 0.85f, 1.4f, cx(11) + i * 0.7f);
+            for (int i = 0; i < 2; i++) Bx(0.18f, 0.7f, 0.5f, Mats.Std(MathX.Hex(0x6a6e64), 0.5f, 0.4f)).At(29 * C - 0.09f, 1.4f, cx(11) + i * 0.7f);
 
             // ---- Security office: a row of lockers, a key rack ----
             for (int i = 0; i < 4; i++)
@@ -466,7 +485,7 @@ namespace ThinkingIt
                 var g = Grp("bed");
                 Bx(1.9f, 0.16f, 0.85f, sheet, g).At(0, 0.55f, 0).Rot(0, 0, unmade ? 0.03f : 0);
                 Bx(0.35f, 0.1f, 0.6f, Std(0xe8e4d8, 0.95f), g).At(-0.72f, 0.68f, 0);
-                if (unmade) Bx(1.0f, 0.04f, 0.9f, Std(0x8a9aa8, 0.95f), g).At(0.5f, 0.63f, 0.1f).Rot(0.2f, 0.3f, 0);
+                if (unmade) Bx(0.9f, 0.03f, 0.84f, Std(0x8a9aa8, 0.95f), g).At(0.3f, 0.645f, 0.03f).RotY(0.15f);   // the blanket, lying flat on the mattress (it used to be tilted straight through the bed)
                 Bx(1.95f, 0.06f, 0.9f, iron, g).At(0, 0.44f, 0);
                 foreach (var sx in new[] { -0.95f, 0.95f }) { Bx(0.05f, sx < 0 ? 1.05f : 0.75f, 0.9f, iron, g).At(sx, sx < 0 ? 0.52f : 0.38f, 0); }
                 g.At(x, 0, z).RotY(rot); Prop(g);
@@ -475,8 +494,8 @@ namespace ThinkingIt
             bed(2 * C + 1.05f, cx(9), 0, false); bed(2 * C + 1.05f, cx(11), 0, true); bed(2 * C + 1.05f, cx(13) - 0.3f, 0, false);
             bed(9 * C - 1.05f, cx(10) - 0.3f, PI, true); bed(9 * C - 1.05f, cx(12) + 0.1f, PI, false);
             // bed 3, Subject 14's: the lamp is still clamped to the headboard, and there is a dent at the foot
-            Sp(0.12f, 12, 8, Mats.Std(MathX.Hex(0x7a7a6a), 0.5f, 0, null, null, null, 1, MathX.Hex(0xfff0c0), 0.4f, false, false)).At(2 * C + 0.1f, 1.15f, cx(13) - 0.3f);
-            Sp(0.35f, 12, 6, sheet).At(2 * C + 1.85f, 0.56f, cx(13) - 0.3f).Scl(1, 0.15f, 1);
+            Sp(0.12f, 12, 8, Mats.Std(MathX.Hex(0x7a7a6a), 0.5f, 0, null, null, null, 1, MathX.Hex(0xfff0c0), 0.4f, false, false)).At(2 * C + 0.13f, 1.15f, cx(13) - 0.3f);
+            Sp(0.35f, 12, 6, sheet).At(2 * C + 1.5f, 0.56f, cx(13) - 0.3f).Scl(1, 0.15f, 1);
             var curtainM = Mats.Std(MathX.Hex(0x8aa09a), 0.95f, 0, null, null, null, 1, null, 1, true);
             foreach (var z in new[] { cx(10), cx(12) })
             {
@@ -487,7 +506,7 @@ namespace ThinkingIt
             Cy(0.015f, 0.015f, 1.8f, 6, iron, iv).At(0, 0.9f, 0);
             Cy(0.25f, 0.25f, 0.02f, 12, iron, iv).At(0, 0.02f, 0);
             Bx(0.12f, 0.2f, 0.04f, Mats.LitTransparent(new Color(0.8f, 0.9f, 0.9f, 0.5f)), iv).At(0.1f, 1.7f, 0);
-            iv.At(cx(6), 0, cx(11) + 0.6f).Rot(0.12f, 0, 0.05f); Prop(iv);
+            iv.At(cx(6), 0, cx(11) + 0.6f); Prop(iv);
             // ---- Isolation: padded walls, a cot with straps, the same bear scratched over and over ----
             var padTex = Paint(128, 128, (g2, W2, H2) =>
             {
@@ -568,7 +587,7 @@ namespace ThinkingIt
                 Bx(0.5f, 0.4f, 0.4f, Std(0x2a2c2a, 0.6f), mon);
                 var sm = Mats.Std(MathX.Hex(0x0a120e), 0.2f, 0, null, null, null, 1, MathX.Hex(0x6affc0), 0, false, false);
                 Pl(0.4f, 0.3f, sm, mon).At(0, 0, 0.205f);
-                mon.At(cx(13) - 0.5f + i * 0.5f, 1.0f, cx(11) + 0.05f).RotY((i - 1) * -0.25f);
+                mon.At(cx(13) - 0.55f + i * 0.55f, 1.0f, cx(11) + 0.05f).RotY((i - 1) * -0.25f);
                 screens.Add((sm, 1.5f + i * 0.4f));
             }
         }
@@ -577,7 +596,7 @@ namespace ThinkingIt
         public override void Begin()
         {
             g.px = cx(2); g.pz = cx(4); g.yaw = -PI / 2; g.pitch = 0;
-            g.Hint("WASD move  ·  mouse look  ·  E interact  ·  hold SPACE to close your eyes", 8);
+            g.Hint("WASD move  ·  mouse look  ·  E interact  ·  SPACE eyes  ·  SHIFT run   —   a terminal on the reception desk explains the rest", 10);
         }
 
         public override string Zone(float wx, float wz)
@@ -634,7 +653,7 @@ namespace ThinkingIt
                 powerT += dt;
                 if (doorD && powerT < 3)
                 {
-                    doorD.transform.localPosition = new Vector3(0, Mathf.Min(WALL_H, powerT * 1.3f), 0);
+                    doorD.transform.localPosition = new Vector3(0, Mathf.Min(WALL_H + 0.1f, powerT * 1.3f), 0);
                     if (powerT > 1.5f) { w[19, 13] = '.'; w[20, 13] = '.'; }
                 }
                 RenderSettings.ambientLight = new Color(0.42f, 0.45f, 0.5f) * 0.1f;

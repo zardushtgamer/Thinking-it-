@@ -101,7 +101,7 @@ namespace ThinkingIt
 
             var inst = Mats.Std(Color.white, 0.85f, 0, Chapter1.WallTex());
             var tiles = Mats.Std(Color.white, 0.35f, 0, Tiles());
-            w.WallFaces("#", ".", (nx, ny) => ZoneCell(nx, ny) == "chamber" ? tiles : inst);
+            w.WallFaces("#", ".PVD", (nx, ny) => ZoneCell(nx, ny) == "chamber" ? tiles : inst);
             var lino = TextureLibrary.Find(l => l.oldLinoleum);
             var floorM = lino != null ? Mats.Std(Color.white, 0.4f, 0, lino.diff, new Vector2(w.W * 0.75f, w.H * 0.75f), lino.nor, 0.6f) : Std(0x8e8a7c, 0.45f);
             var ceilSet = TextureLibrary.Find(l => l.ceilingInterior);
@@ -180,7 +180,7 @@ namespace ThinkingIt
             };
             bridgeA = span(10, 11, "bridgeA");
             bridgeB = span(12, 13, "bridgeB");
-            for (int i = 0; i < 6; i++) Bx(0.3f + Random.value * 0.4f, 0.15f, 0.3f + Random.value * 0.4f, Std(0x6a665e)).At(cx(9) + 0.6f + Random.value * 0.3f, 0.07f, cx(9) + Random.value * 5).RotY(Random.value * 3);
+            for (int i = 0; i < 6; i++) Bx(0.3f + Random.value * 0.4f, 0.15f, 0.3f + Random.value * 0.4f, Std(0x6a665e)).At(cx(9) + 0.6f + Random.value * 0.3f, 0.07f, cx(9) - 0.6f + Random.value * 4.2f).RotY(Random.value * 3);
         }
 
         void Booth()
@@ -210,10 +210,10 @@ namespace ThinkingIt
             var tape = Grp("tape");
             Bx(0.11f, 0.018f, 0.07f, Std(0x1a1a1a, 0.4f), tape);
             Sp(0.015f, 6, 6, Mats.Unlit(MathX.Hex(0xfff0d0)), tape).At(0.04f, 0.02f, 0);
-            tape.At(cx(16) + 0.4f, 0.97f, cx(10) - 0.6f).RotY(0.4f);
+            tape.At(cx(16) + 0.4f, 0.95f, cx(10) - 0.6f).RotY(0.4f);
             World.Tagged(tape, "tape", "tape5");
             AddInteract("tape", "tape", "tape5", tape.transform.position, tape, "play the tape");
-            Doc(cx(16) + 0.35f, 0.97f, cx(9) + 0.85f, "e_teo");
+            Doc(cx(16) + 0.35f, 0.955f, cx(9) + 0.85f, "e_teo");
             Desk(cx(14) + 0.3f, cx(12) + 0.4f, 0);
             Doc(cx(14) + 0.3f, 0.8f, cx(12) + 0.4f, "e_protocol");
             w.PointLight(new Vector3(cx(15), 2.6f, cx(10)), MathX.Hex(0xffc880), 0.8f, 7, true);
@@ -285,6 +285,7 @@ namespace ThinkingIt
             for (int i = 0; i < 3; i++)
             {
                 var t = trials[i] = new Trial();
+                Bx(C, 0.9f, C, Mats.Std(Color.white, 0.85f, 0, Chapter1.WallTex())).At(cx(doorX[i]), WALL_H - 0.45f, cx(14));   // a lintel over the doorway, for the sign
                 t.start = new Vector3(cx(doorX[i]), 0, 15 * C + 0.5f);
                 Pl(0.7f, 0.3f, Mats.Std(Color.white, 0.6f, 0, Chapter3.Sign("TRIAL " + sign[i], null))).At(cx(doorX[i]), 2.6f, 14 * C - 0.03f).RotY(PI);
                 t.lampMat = Mats.Std(MathX.Hex(0x301010), 0.5f, 0, null, null, null, 1, MathX.Hex(0xff3020), 1.2f, false, false);
@@ -490,7 +491,7 @@ namespace ThinkingIt
             if (doorT >= 0)
             {
                 doorT += dt;
-                doorD.transform.localPosition = new Vector3(0, Mathf.Min(WALL_H, doorT * 1.2f), 0);
+                doorD.transform.localPosition = new Vector3(0, Mathf.Min(WALL_H + 0.1f, doorT * 1.2f), 0);
                 if (doorT > 1.5f) w[17, 12] = '.';
                 if (doorT > 3) doorT = -1;
             }

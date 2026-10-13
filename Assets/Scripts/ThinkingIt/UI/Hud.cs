@@ -15,10 +15,13 @@ namespace ThinkingIt
         Text prompt, subWho, subText, thoughtText, thoughtRed, transitionLabel, caughtText;
         Image subBack;
         readonly Text[] hintTexts = new Text[2];
-        RectTransform docPanel, pausePanel, endPanel, introPanel, settingsBox;
-        Text docTitle, docBody, objectiveText, endTitle, endSub, endStats, endNext, endNote, cardText, skipText;
+        RectTransform termPanel, docPanel, pausePanel, endPanel, introPanel, settingsBox;
+        Text termTitle, termBody, termFooter, docTitle, docBody, objectiveText, endTitle, endSub, endStats, endNext, endNote, cardText, skipText;
         Button nextBtn, againBtn;
-        CanvasGroup cardGroup;
+        CanvasGroup cardGroup, staminaGroup;
+        Image staminaFill;
+        string[] termPages; int termPage; bool termTyping, termSkip; Coroutine termCo;
+        static readonly Color TermGreen = new Color(0.27f, 1f, 0.52f), TermDim = new Color(0.14f, 0.62f, 0.3f);
         System.Action onResume, onMenu, onNext, onAgain;
 
         public bool IntroRunning { get; private set; }
@@ -56,6 +59,13 @@ namespace ThinkingIt
             prompt = UIKit.Label(root, "prompt", "", 36, new Color(0.86f, 0.84f, 0.8f, 0.8f), TextAnchor.MiddleCenter, TexText.Face.Serif, FontStyle.Italic);
             prompt.rectTransform.anchorMin = prompt.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             prompt.rectTransform.sizeDelta = new Vector2(900, 60); prompt.rectTransform.anchoredPosition = new Vector2(0, -84);
+
+            // breath bar (sprinting): only visible while it is not full
+            var stam = UIKit.At(root, "stamina", new Vector2(0.5f, 0), new Vector2(0, 64), new Vector2(300, 6));
+            var stamBack = stam.gameObject.AddComponent<Image>(); stamBack.sprite = UIKit.Solid; stamBack.color = new Color(1, 1, 1, 0.12f); stamBack.raycastTarget = false;
+            staminaGroup = stam.gameObject.AddComponent<CanvasGroup>(); staminaGroup.alpha = 0; staminaGroup.blocksRaycasts = false;
+            staminaFill = UIKit.Full(stam, "fill").gameObject.AddComponent<Image>();
+            staminaFill.sprite = UIKit.Solid; staminaFill.type = Image.Type.Filled; staminaFill.fillMethod = Image.FillMethod.Horizontal; staminaFill.raycastTarget = false;
 
             // subtitles
             subBack = UIKit.Img(root, "subBack", new Color(0, 0, 0, 0.55f), UIKit.Solid);
@@ -116,6 +126,22 @@ namespace ThinkingIt
             docHint.rectTransform.sizeDelta = new Vector2(600, 40); docHint.rectTransform.anchoredPosition = new Vector2(0, -420);
             docPanel.gameObject.SetActive(false);
 
+            // the orientation terminal
+            termPanel = UIKit.Full(root, "terminal");
+            var termBg = termPanel.gameObject.AddComponent<Image>(); termBg.color = MathX.Hex(0x020a05);
+            var screen = UIKit.Rect(termPanel, "screen", Vector2.zero, Vector2.one, new Vector2(110, 80), new Vector2(-110, -80));
+            screen.gameObject.AddComponent<Image>().color = MathX.Hex(0x041a0b);
+            var scrLine = screen.gameObject.AddComponent<Outline>(); scrLine.effectColor = new Color(0.2f, 1f, 0.45f, 0.45f); scrLine.effectDistance = new Vector2(3, 3);
+            termTitle = UIKit.Label(screen, "title", "", 34, TermDim, TextAnchor.UpperLeft);
+            termTitle.font = TexText.Cutscene; termTitle.rectTransform.offsetMin = new Vector2(70, 0); termTitle.rectTransform.offsetMax = new Vector2(-70, -45);
+            termBody = UIKit.Label(screen, "body", "", 38, TermGreen, TextAnchor.UpperLeft);
+            termBody.font = TexText.Cutscene; termBody.lineSpacing = 1.3f;
+            termBody.rectTransform.offsetMin = new Vector2(70, 110); termBody.rectTransform.offsetMax = new Vector2(-70, -130);
+            termFooter = UIKit.Label(screen, "footer", "", 26, TermDim, TextAnchor.LowerLeft);
+            termFooter.font = TexText.Cutscene; termFooter.rectTransform.offsetMin = new Vector2(70, 30); termFooter.rectTransform.offsetMax = new Vector2(-70, 0);
+            CrtFx.Attach(termPanel, termBg);
+            termPanel.gameObject.SetActive(false);
+
             // pause
             pausePanel = UIKit.Full(root, "pause");
             pausePanel.gameObject.AddComponent<Image>().color = new Color(0, 0, 0, 0.88f);
@@ -154,12 +180,15 @@ namespace ThinkingIt
 
             // intro cards
             introPanel = UIKit.Full(root, "intro");
-            introPanel.gameObject.AddComponent<Image>().color = Color.black;
-            cardText = UIKit.Label(introPanel, "card", "", 58, UIKit.Ink);
+            var introBg = introPanel.gameObject.AddComponent<Image>(); introBg.color = MathX.Hex(0x031208);
+            cardText = UIKit.Label(introPanel, "card", "", 54, TermGreen);
+            cardText.font = TexText.Cutscene;
             cardText.rectTransform.anchorMin = cardText.rectTransform.anchorMax = new Vector2(0.5f, 0.5f); cardText.rectTransform.sizeDelta = new Vector2(1650, 700);
             cardGroup = cardText.gameObject.AddComponent<CanvasGroup>();
             skipText = UIKit.Label(introPanel, "skip", "SPACE to skip", 22, MathX.Hex(0x444444), TextAnchor.LowerRight, TexText.Face.Mono);
             skipText.rectTransform.offsetMin = new Vector2(0, 30); skipText.rectTransform.offsetMax = new Vector2(-40, 0);
+            skipText.font = TexText.Cutscene; skipText.color = TermDim;
+            CrtFx.Attach(introPanel, introBg);
             introPanel.gameObject.SetActive(false);
         }
 
@@ -252,8 +281,65 @@ namespace ThinkingIt
             docPanel.gameObject.SetActive(true);
         }
         public void SetDocBody(string body) { docBody.text = body; }
-        public void HideDoc() { docPanel.gameObject.SetActive(false); }
-        public bool DocOpen => docPanel.gameObject.activeSelf;
+        public void HideDoc()
+        {
+            docPanel.gameObject.SetActive(false);
+            if (termCo != null) { StopCoroutine(termCo); termCo = null; }
+            termTyping = false;
+            termPanel.gameObject.SetActive(false);
+        }
+        public bool DocOpen => docPanel.gameObject.activeSelf || termPanel.gameObject.activeSelf;
+
+        // ---- the orientation terminal: green screen, one page at a time, typed in
+        public bool TerminalOpen => termPanel.gameObject.activeSelf;
+        public void ShowTerminal(Doc d)
+        {
+            termPages = d.body.Split('\f'); termPage = -1;
+            termTitle.text = d.title; termBody.text = ""; termFooter.text = "";
+            docPanel.gameObject.SetActive(false);
+            termPanel.gameObject.SetActive(true);
+            TerminalNext();
+        }
+        // E on the terminal: finish typing the page, or go to the next one. false = that was the last page (close it).
+        public bool TerminalNext()
+        {
+            if (termTyping) { termSkip = true; return true; }
+            if (termPages == null || termPage + 1 >= termPages.Length) return false;
+            termPage++;
+            if (termCo != null) StopCoroutine(termCo);
+            termCo = StartCoroutine(TypePage(termPages[termPage]));
+            return true;
+        }
+        IEnumerator TypePage(string page)
+        {
+            termTyping = true; termSkip = false; termFooter.text = "";
+            var au = Sfx.Ensure();
+            int total = VisibleLength(page), shown = 0; float acc = 0;
+            while (shown < total && !termSkip)
+            {
+                acc += Time.unscaledDeltaTime * 75f;
+                while (acc >= 1f && shown < total)
+                {
+                    acc -= 1f; shown++;
+                    char ch = VisibleChar(page, shown - 1);
+                    if (ch == '\n') au.TypeReturn();
+                    else if (ch != ' ' && shown % 2 == 0) au.TypeKey();
+                }
+                termBody.text = Reveal(page, shown);
+                yield return null;
+            }
+            termBody.text = page; termTyping = false; termCo = null;
+            termFooter.text = $"[E] {(termPage + 1 < termPages.Length ? "NEXT" : "LOG OFF")}     [P] CLOSE     PAGE {termPage + 1}/{termPages.Length}";
+        }
+
+        // stamina for sprinting; the bar fades in when it is not full
+        public void SetStamina(float s, bool exhausted)
+        {
+            float target = s < 0.995f ? 1f : 0f;
+            staminaGroup.alpha = Mathf.MoveTowards(staminaGroup.alpha, target, Time.unscaledDeltaTime * (target > 0 ? 8f : 1.5f));
+            staminaFill.fillAmount = s;
+            staminaFill.color = exhausted ? new Color(0.9f, 0.3f, 0.25f, 0.85f) : new Color(0.86f, 0.84f, 0.8f, 0.7f);
+        }
 
         public void ShowPause(string objective, System.Action resume, System.Action menu)
         {
@@ -281,25 +367,104 @@ namespace ThinkingIt
         }
         public void SkipCards() { if (IntroRunning) skipRequested = true; }
 
+        const float TYPE_CPS = 34f, ERASE_CPS = 90f;
+
+        // the first n visible characters of a rich-text string; the rest stays in the text but is invisible,
+        // so the lines don't jump around while it types
+        static string Reveal(string rich, int n)
+        {
+            int vis = 0, i = 0;
+            while (i < rich.Length)
+            {
+                if (rich[i] == '<')
+                {
+                    int e = rich.IndexOf('>', i);
+                    if (e > 0) { i = e + 1; continue; }
+                }
+                if (vis == n) break;
+                vis++; i++;
+            }
+            if (i >= rich.Length) return rich;
+            return rich.Substring(0, i) + "<color=#00000000>" + rich.Substring(i) + "</color>";
+        }
+
+        static int VisibleLength(string rich)
+        {
+            int n = 0;
+            for (int i = 0; i < rich.Length; i++)
+            {
+                if (rich[i] == '<') { int e = rich.IndexOf('>', i); if (e > 0) { i = e; continue; } }
+                n++;
+            }
+            return n;
+        }
+
+        static char VisibleChar(string rich, int index)
+        {
+            int n = 0;
+            for (int i = 0; i < rich.Length; i++)
+            {
+                if (rich[i] == '<') { int e = rich.IndexOf('>', i); if (e > 0) { i = e; continue; } }
+                if (n++ == index) return rich[i];
+            }
+            return ' ';
+        }
+
         IEnumerator Cards(Card[] cards, System.Action done)
         {
             IntroRunning = true; skipRequested = false;
+            var au = Sfx.Ensure();
             introPanel.gameObject.SetActive(true);
-            cardGroup.alpha = 0;
+            cardGroup.alpha = 1; cardText.text = "";
+            yield return Wait(0.8f);
             foreach (var c in cards)
             {
-                // fade out, swap, fade in, hold
-                for (float t = 0; t < 0.9f && !skipRequested; t += Time.unscaledDeltaTime) { cardGroup.alpha = Mathf.Min(cardGroup.alpha, 1 - t / 0.9f); yield return null; }
                 if (skipRequested) break;
+                int total = VisibleLength(c.text);
+                // type it in
+                float acc = 0; int shown = 0;
+                float t0 = 0;
+                while (shown < total && !skipRequested)
+                {
+                    acc += Time.unscaledDeltaTime * TYPE_CPS; t0 += Time.unscaledDeltaTime;
+                    while (acc >= 1f && shown < total)
+                    {
+                        acc -= 1f; shown++;
+                        char ch = VisibleChar(c.text, shown - 1);
+                        if (ch == '\n') { au.TypeReturn(); acc -= 5f; }          // a pause at the line break
+                        else if (ch != ' ') au.TypeKey();
+                        if (ch == '.' || ch == ',' || ch == '?' || ch == '!') acc -= 4f;  // a breath after punctuation
+                    }
+                    cardText.text = Reveal(c.text, shown);
+                    yield return null;
+                }
                 cardText.text = c.text;
-                for (float t = 0; t < 1.6f && !skipRequested; t += Time.unscaledDeltaTime) { cardGroup.alpha = t / 1.6f; yield return null; }
-                cardGroup.alpha = 1;
-                for (float t = 0; t < c.dur && !skipRequested; t += Time.unscaledDeltaTime) yield return null;
+                // hold
+                float hold = Mathf.Max(1.4f, c.dur - total / TYPE_CPS);
+                for (float t = 0; t < hold && !skipRequested; t += Time.unscaledDeltaTime) yield return null;
                 if (skipRequested) break;
+                // type it out: backspace from the end
+                acc = 0; shown = total;
+                while (shown > 0 && !skipRequested)
+                {
+                    acc += Time.unscaledDeltaTime * ERASE_CPS;
+                    bool tick = false;
+                    while (acc >= 1f && shown > 0) { acc -= 1f; shown--; tick = true; }
+                    if (tick) au.TypeBack();
+                    cardText.text = Reveal(c.text, shown);
+                    yield return null;
+                }
+                cardText.text = "";
+                yield return Wait(0.5f);
             }
             introPanel.gameObject.SetActive(false);
             IntroRunning = false;
             done?.Invoke();
+        }
+
+        IEnumerator Wait(float s)
+        {
+            for (float t = 0; t < s && !skipRequested; t += Time.unscaledDeltaTime) yield return null;
         }
     }
 

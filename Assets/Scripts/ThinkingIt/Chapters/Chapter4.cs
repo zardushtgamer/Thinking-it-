@@ -102,7 +102,8 @@ namespace ThinkingIt
             w.Carve(18, 10, 22, 10, '=');              // the porch
             w.Carve(1, 11, 30, 17);                    // the shore
             for (int y = 9; y <= 17; y++) { w[0, y] = 'r'; w[31, y] = 'r'; }
-            for (int x = 25; x <= 31; x++) for (int y = 7; y <= 10; y++) w[x, y] = 'r';
+            for (int x = 26; x <= 31; x++) for (int y = 7; y <= 10; y++) w[x, y] = 'r';
+            for (int y = 7; y <= 10; y++) w[25, y] = '#';   // the living room's east wall (the trees used to stand right against the room, with no wall at all)
             foreach (var t in new[] { (3, 15), (9, 12), (11, 16), (26, 12), (28, 15), (24, 16), (1, 12), (30, 11) }) w[t.Item1, t.Item2] = 'r';
             for (int y = 18; y < 28; y++) for (int x = 0; x < 32; x++) w[x, y] = 'W';   // the lake
             for (int y = 18; y <= 24; y++) w[16, y] = '=';                              // the dock
@@ -115,8 +116,10 @@ namespace ThinkingIt
             var panel = Mats.Std(Color.white, 0.8f, 0, WoodPanel());
             var siding = planks != null ? Mats.Std(MathX.Hex(0x707070), 0.9f, 0, planks.diff, new Vector2(1, 1.6f), planks.nor, 1) : Mats.Std(Color.white, 0.9f, 0, Siding());
             var concrete = Mats.Std(Color.white, 0.95f, 0, Concrete());
-            w.WallFaces("#", ".=k", (nx, ny) =>
+            // walls also get an outside face towards the trees, or you could see straight through them into the next room
+            w.WallFaces("#", ".=krG", (nx, ny) =>
             {
+                if (w[nx, ny] == 'r') return siding;
                 string z = ZoneCell(nx, ny);
                 if (z == "wing") return instWall;
                 if (z == "house") return panel;
@@ -206,12 +209,12 @@ namespace ThinkingIt
         void House()
         {
             var wood = Std(0x5a3a22, 0.6f); var darkWood = Std(0x3a2414, 0.55f); var cream = Std(0xd8d0bc, 0.6f);
-            w.Skirting(darkWood, "#G");
+            w.Skirting(darkWood, "#");
             // ---- hall: coat hooks, a bench, the whistle hanging on a hook ----
             var hooks = Grp("coat hooks");
             Bx(1.2f, 0.1f, 0.04f, wood, hooks);
             for (int i = 0; i < 4; i++) Cy(0.015f, 0.015f, 0.12f, 6, Mats.Std(MathX.Hex(0xb08a3a), 0.35f, 0.7f), hooks).At(-0.45f + i * 0.3f, 0, 0.06f).Rot(PI / 2, 0, 0);
-            Cy(0.12f, 0.25f, 0.9f, 10, Mats.Std(MathX.Hex(0x8a2a2a), 0.95f, 0, null, null, null, 1, null, 1, true), hooks, true).At(-0.45f, -0.45f, 0.14f);
+            Cy(0.12f, 0.25f, 0.9f, 10, Mats.Std(MathX.Hex(0x8a2a2a), 0.95f, 0, null, null, null, 1, null, 1, true), hooks, true).At(-0.45f, -0.45f, 0.24f);
             hooks.At(cx(15), 1.7f, C + 0.04f);
             var bench = Grp("bench");
             Bx(1.3f, 0.06f, 0.4f, wood, bench).At(0, 0.45f, 0);
@@ -272,7 +275,7 @@ namespace ThinkingIt
             var radio = Grp("radio");
             Bx(0.4f, 0.24f, 0.18f, Std(0x6a4426, 0.45f), radio);
             Bx(0.18f, 0.15f, 0.01f, Std(0x2a2014, 1), radio).At(-0.08f, 0, 0.095f);
-            radio.At(cx(20), 1.07f, C + 0.4f);
+            radio.At(cx(21) - 0.8f, 1.07f, C + 0.4f);
 
             // ---- living room: sofa, armchair, fireplace, the painting, the photo, the letter, the sandal ----
             var sofa = Grp("sofa"); var fabric = Std(0x3a4a5a, 0.95f);
@@ -324,7 +327,7 @@ namespace ThinkingIt
             // ---- the vestibule: his swim ring, leaning where he dropped it ----
             var ring = Grp("swim ring");
             To(0.2f, 0.075f, 10, 24, null, ring);
-            ring.At(16 * C + 0.12f, 0.28f, cx(4) - 0.3f).Rot(0, PI / 2, 0.12f);
+            ring.At(16 * C + 0.12f, 0.28f, cx(4) - 0.3f).Rot(-PI / 2, PI / 2 - 0.12f, 0);
             AddFocusable("ring", ring, null, ring.transform.position, 2.8f, Std(0xf0c820, 0.5f));
             memoryGlow["ring"] = w.PointLight(ring.transform.position + new Vector3(0.4f, 0.3f, 0), MathX.Hex(0xc8d8ff), 0.12f, 1.6f);
 
@@ -369,7 +372,7 @@ namespace ThinkingIt
             Bx(0.01f, 1.9f, 0.01f, darkWood, wardrobe).At(0, 1.0f, 0.28f);
             wardrobe.At(cx(28), 0, C + 0.3f); Prop(wardrobe);
             Pl(0.42f, 0.56f, Mats.Std(Color.white, 0.8f, 0, BearDrawing())).At(31 * C - 0.02f, 1.5f, cx(4)).RotY(-PI / 2);
-            Bx(6 * C, 0.4f, 6 * C, roofLike()).At(28 * C, WALL_H + 0.2f, 3.5f * C);
+            Bx(6 * C, 0.4f, 6 * C, roofLike()).At(28 * C, WALL_H + 0.21f, 3.5f * C);
 
             // ---- the back door: only an outline, and only once you've remembered ----
             var gd = Grp("back door");
@@ -387,7 +390,7 @@ namespace ThinkingIt
             var roofM = roofTex != null ? Mats.Std(Color.white, 0.9f, 0, roofTex.diff, new Vector2(4, 2), roofTex.nor, 0.8f) : Std(0x3a3a40, 0.9f);
             foreach (var s in new[] { -1, 1 })
                 Bx(12 * C + 0.6f, 0.15f, 10.8f, roofM).At(19 * C, WALL_H + 1.7f, 5 * C + s * 5f).Rot(s * 0.33f, 0, 0);
-            Bx(14 * C, 0.4f, 11 * C, Std(0x2a2c2a, 0.95f)).At(7 * C, WALL_H + 0.2f, 5.5f * C);
+            Bx(14 * C, 0.4f, 11 * C, Std(0x2a2c2a, 0.95f)).At(7 * C, WALL_H + 0.21f, 5.5f * C);
         }
 
         void KitchenWindow(float x, float z, float rotY)
@@ -488,10 +491,10 @@ namespace ThinkingIt
             var shed = Grp("boathouse"); var shedWood = Std(0x3a2e24, 0.9f);
             Bx(4.2f, 2.6f, 0.12f, shedWood, shed).At(0, 1.3f, -1.4f);
             foreach (var sx in new[] { -2.05f, 2.05f }) Bx(0.12f, 2.6f, 2.9f, shedWood, shed).At(sx, 1.3f, 0);
-            Bx(4.6f, 0.12f, 3.4f, roofLike(), shed).At(0, 2.7f, 0).Rot(0.12f, 0, 0);
+            Bx(4.6f, 0.12f, 3.4f, roofLike(), shed).At(0, 2.66f, 0);
             var boatG = Grp("rowboat", shed);
             Cy(0.5f, 0.5f, 3.0f, 12, Std(0x4a3a2a, 0.8f), boatG, true, 0, PI).At(0, 0.02f, 0).Rot(0, 0, PI / 2).Scl(1, 1, 0.6f);
-            boatG.At(0, 0.05f, 0.2f).RotY(0.08f);
+            boatG.At(0, -0.07f, 0.2f).RotY(0.08f);
             shed.At(cx(5), 0, cx(12) + 0.6f); Prop(shed, 4, 12);
             Bx(0.8f, 0.6f, 0.04f, Std(0x8a6a44, 1)).At(cx(5) + 1, 1.5f, cx(12) + 0.6f - 1.32f);
             Doc(cx(5) + 1, 1.5f, cx(12) + 0.6f - 1.29f, "c_schedule", Mats.Std(Color.white, 0.9f, 0, Chapter2.DiaryPaper()), true, 0);

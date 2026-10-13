@@ -43,3 +43,5 @@ crashlytics-build.properties
 /[Aa]ssets/[Rr]esources/PerformanceTestRun*
 # old Brotli web build files (GitHub Pages cannot serve them)
 /docs/Build/*.br
+# temporary files Unity's Web build leaves in the project root
+/[Dd]ata/

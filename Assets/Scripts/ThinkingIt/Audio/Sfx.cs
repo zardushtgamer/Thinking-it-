@@ -147,6 +147,10 @@ namespace ThinkingIt
             timers.After(1.1f, () => Noise(0.2f, 2000, 0.3f));
         }
         public void Click() => Noise(0.03f, 3000, 0.22f);
+        // typewriter: a key strike, a softer backspace, and the bell + carriage return at a line break
+        public void TypeKey() { Noise(0.022f, 2100 + Random.Range(0, 900), 0.17f, Synth.F.Bandpass, null, 1.2f, 0.001f); Tone(160 + Random.Range(0, 40), 85, 0.05f, 0.12f, "square", null, 0.001f); }
+        public void TypeBack() { Noise(0.018f, 1700 + Random.Range(0, 400), 0.09f, Synth.F.Bandpass, null, 1f, 0.001f); Tone(120, 80, 0.03f, 0.06f, "square", null, 0.001f); }
+        public void TypeReturn() { Noise(0.09f, 800, 0.22f, Synth.F.Bandpass, null, 0.8f, 0.002f); Tone(2300, 2290, 0.35f, 0.045f, "sine", null, 0.002f); }
         public void Flicker() => Noise(0.06f, 5000, 0.12f, Synth.F.Highpass);
         public void Creak(Vector3? at, float gain = 0.25f) => Play(Synth.Creak(Random.Range(0, 10)), at, gain);
         public void DoorCreak() { Creak(null, 0.5f); timers.After(0.3f, () => Creak(null, 0.35f)); Noise(0.6f, 300, 0.4f, Synth.F.Lowpass, null, 1, 0.05f); }

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace ThinkingIt
 {
-    public class Doc { public string title, body; public bool forbidden; public Doc(string t, bool f, string b) { title = t; forbidden = f; body = b; } }
+    public class Doc { public string title, body; public bool forbidden, terminal; public Doc(string t, bool f, string b) { title = t; forbidden = f; body = b; } }
     public struct Line { public string who, text; public float dur; public Line(string w, string t, float d) { who = w; text = t; dur = d; } }
     public struct Card { public string text; public float dur; public Card(string t, float d) { text = t; dur = d; } }
 
@@ -12,6 +12,17 @@ namespace ThinkingIt
         // Anything that names or describes "It" is forbidden. Reading it makes it stronger.
         public static readonly Dictionary<string, Doc> Docs = new Dictionary<string, Doc>
         {
+            // the orientation terminal in the lobby: pages are separated by \f and typed in one at a time
+            ["tutorial"] = new Doc("HALVARD INSTITUTE // ORIENTATION TERMINAL", false,
+                "PROJECT WHITE BEAR — PARTICIPANT ORIENTATION\n\nWelcome, Participant.\n\nThis terminal will explain what you need to know.\nRead carefully. It will not be repeated.\n\nThe Institute has been closed since 1998.\nThe power is off. Please remain calm."
+                + "\f[ MOVEMENT ]\n\nW A S D ........ walk\nMOUSE .......... look around\nE .............. use, read, pick up\nP / ESC ........ pause\n\nThings you can use show a prompt\nwhen you look right at them."
+                + "\f[ BLINKING ]\n\nHold SPACE (or Q) to close your eyes.\n\nWith your eyes closed you cannot see.\nYou move slowly, and you cannot run.\nBut it can't feed on you if you aren't looking.\n\nIf something is watching you,\nthe safest thing to do is stop watching it."
+                + "\f[ LOOKING ]\n\nSome things here are unfinished.\nA pale outline where a door should be.\nA gap where the floor should be.\n\nStare at them. Hold your gaze.\nThe longer you look, the more real they become.\n\nThe building notices when you do this."
+                + "\f[ SPRINTING ]\n\nHold SHIFT while walking to run.\n\nRunning is faster, but it is loud.\nThe bar at the bottom of your screen is your breath.\nWhen it runs out you must walk until it returns.\n\nWherever you run, it will come to look."
+                + "\f[ IT ]\n\nSubject 14 described a tall shape\nstanding in the corner of the room.\n\nIt does not move while you look at it.\nIt is drawn to the places you keep looking.\n\nIt is made of attention.\nWe do not know what it wants.\nWe know it gets heavier when it is described."
+                + "\f[ DREAD ]\n\nSome of the documents here describe it.\nReading them is not recommended.\n\nFear builds as you read, stare and run.\nThe more afraid you are, the closer it comes.\n\nIf it catches you, you start again\nfrom your last checkpoint."
+                + "\f[ END OF ORIENTATION ]\n\nFind the power. Find the way out.\nAnd whatever you do —\n\nDon't think about it.\n\n— Dr. H. Lund")
+            { terminal = true },
             ["brochure"] = new Doc("Halvard Institute for Cognitive Research", false,
                 "SUMMER VOLUNTEER PROGRAM — 1998\n\nPaid participation for young people aged 13–17.\nRoom and board provided. Six weeks.\n\n\"Learn to quiet your mind.\"\n\n<i>Project White Bear is a study of healthy forgetting.</i>"),
             ["teoNote"] = new Doc("A note, in Teo's handwriting", false,

@@ -194,8 +194,8 @@ namespace ThinkingIt
 
             var lib = TextureLibrary.Find(l => l.decrepitWallpaper);
             var wallM = lib != null ? Mats.Std(MathX.Hex(0xd8c8a8), 0.9f, 0, lib.diff, Vector2.one, lib.nor, 0.8f) : Mats.Std(Color.white, 0.9f, 0, Wallpaper());
-            w.CellBlocks("#AB", wallM, "wall");
-            w.CellBlocks("R", Mats.Unlit(Color.black), "wall", WALL_H, "bathroom");
+            w.CellBlocks("#ABR", wallM, "wall");
+            Pl(1.2f, 2.37f, Mats.Unlit(Color.black)).At(cx(5), 1.185f, 3 * C - 0.01f).RotY(PI);   // the dark bathroom behind its door (the room itself is just wall)
             var wood = TextureLibrary.Find(l => l.darkWoodenPlanks);
             var floorM = wood != null ? Mats.Std(Color.white, 0.55f, 0, wood.diff, new Vector2(w.W, w.H), wood.nor, 0.8f) : Mats.Std(Color.white, 0.55f, 0, WoodFloor(), new Vector2(w.W / 2f, w.H / 2f));
             var plaster = TextureLibrary.Find(l => l.beigeWall);
@@ -210,7 +210,7 @@ namespace ThinkingIt
             System.Func<int, string, GameObject> doorObj = (zCell, tagName) =>
             {
                 var gd = Grp(tagName);
-                Bx(0.06f, 2.3f, 1.05f, slabM, gd).At(0, 1.15f, 0);
+                Bx(0.06f, 2.37f, 1.05f, slabM, gd).At(0, 1.185f, 0);
                 foreach (var z in new[] { -0.58f, 0.58f }) Bx(0.08f, 2.45f, 0.1f, trim, gd).At(0.01f, 1.22f, z);
                 Bx(0.08f, 0.1f, 1.26f, trim, gd).At(0.01f, 2.42f, 0);
                 Sp(0.045f, 12, 10, Mats.Std(MathX.Hex(0xc8a060), 0.3f, 0.8f), gd).At(0.07f, 1.05f, 0.38f);
@@ -310,7 +310,7 @@ namespace ThinkingIt
             chair.At(cx(7), 0, cx(8)).RotY(PI + 0.5f); Prop(chair, 7, 8); armchair = chair; AddSuspect("armchair", chair);
             // bookshelf in the corner
             var shelf = Grp("bookshelf");
-            Bx(1.4f, 2.2f, 0.4f, shelfWood, shelf).At(0, 1.1f, 0);
+            Bx(1.4f, 2.2f, 0.03f, shelfWood, shelf).At(0, 1.1f, -0.185f); foreach (var sx in new[] { -0.685f, 0.685f }) Bx(0.03f, 2.2f, 0.4f, shelfWood, shelf).At(sx, 1.1f, 0); Bx(1.4f, 0.03f, 0.4f, shelfWood, shelf).At(0, 2.185f, 0); Bx(1.4f, 0.1f, 0.4f, shelfWood, shelf).At(0, 0.05f, 0);
             int[] bookCols = { 0x6a1f1f, 0x1f3a5a, 0x2a4a2a, 0x7a6a3a, 0x3a2a4a, 0x8a7a6a };
             for (int r = 0; r < 4; r++)
             {
@@ -352,15 +352,15 @@ namespace ThinkingIt
             Bx(1.5f, 0.05f, 0.42f, shelfWood, console1).At(0, 0.85f, 0);
             foreach (var sx in new[] { -0.68f, 0.68f }) foreach (var sz in new[] { -0.16f, 0.16f }) Bx(0.05f, 0.85f, 0.05f, shelfWood, console1).At(sx, 0.42f, sz);
             Bx(1.4f, 0.03f, 0.36f, shelfWood, console1).At(0, 0.25f, 0);
-            Sp(0.13f, 16, 8, Std(0x2a4a5a, 0.3f), console1, 0, PI * 2, PI / 2, PI / 2).At(-0.4f, 0.99f, 0).Rot(PI, 0, 0);
-            for (int i = 0; i < 3; i++) Bx(0.06f, 0.01f, 0.02f, brass, console1).At(-0.4f + MathX.Jit(0.1f), 0.92f, MathX.Jit(0.08f)).RotY(Random.value * 3);
+            Sp(0.13f, 16, 8, Mats.Std(MathX.Hex(0x2a4a5a), 0.3f, 0, null, null, null, 1, null, 1, true), console1, 0, PI * 2, PI / 2, PI / 2).At(-0.4f, 1.005f, 0);
+            for (int i = 0; i < 3; i++) Bx(0.06f, 0.01f, 0.02f, brass, console1).At(-0.4f + MathX.Jit(0.03f), 0.9f, MathX.Jit(0.03f)).RotY(Random.value * 3);
             for (int i = 0; i < 4; i++) Bx(0.24f, 0.006f, 0.12f, Std(0xe8e0d0, 0.9f), console1).At(0.3f + MathX.Jit(0.08f), 0.88f + i * 0.007f, MathX.Jit(0.06f)).RotY(MathX.Jit(0.4f));
             console1.At(cx(7), 0, C + 0.25f); Prop(console1, 7, 1);
             var mirror = Grp("mirror");
-            Pl(0.8f, 1.05f, Mats.Std(MathX.Hex(0x1c242a), 0.08f, 0.95f), mirror);
+            Pl(0.88f, 1.06f, Mats.Std(MathX.Hex(0x1c242a), 0.08f, 0.95f), mirror);
             foreach (var b in new[] { (0.92f, 0.06f, 0f, 0.55f), (0.92f, 0.06f, 0f, -0.55f), (0.06f, 1.16f, 0.46f, 0f), (0.06f, 1.16f, -0.46f, 0f) }) Bx(b.Item1, b.Item2, 0.04f, brass, mirror).At(b.Item3, b.Item4, 0.01f);
             mirrorFigure = Pl(0.22f, 0.8f, Mats.UnlitTransparent(new Color(0, 0, 0, 0.85f)), mirror).At(0.22f, -0.08f, 0.012f);
-            Sp(0.07f, 10, 8, Mats.Unlit(Color.black), mirrorFigure).At(0.03f, 0.45f, 0);
+            w.Disc(0.07f, 12, Mats.Unlit(Color.black), mirrorFigure.transform).At(0.03f, 0.45f, 0.001f);
             mirrorFigure.SetActive(false);
             mirror.At(cx(7), 1.75f, C + 0.03f);
             AddSuspect("mirror", mirror);
@@ -373,7 +373,7 @@ namespace ThinkingIt
             sandalGo = Grp("small red sandal", shoes);
             Bx(0.06f, 0.02f, 0.14f, Std(0xc81e1e, 0.5f), sandalGo).At(0, 0.01f, 0);
             Bx(0.06f, 0.025f, 0.015f, Std(0xc81e1e, 0.5f), sandalGo).At(0, 0.03f, 0.03f);
-            sandalGo.At(0.36f, 0.47f, 0.02f).RotY(0.3f); sandalGo.SetActive(false);
+            sandalGo.At(0.1f, 0.47f, 0.02f).RotY(0.3f); sandalGo.SetActive(false);
             shoes.At(cx(2), 0, 3 * C - 0.2f); Prop(shoes, 2, 2); AddSuspect("shoes", shoes);
             var ustand = Grp("umbrella stand");
             Cy(0.13f, 0.11f, 0.55f, 14, Mats.Std(MathX.Hex(0x2a3a2a), 0.5f, 0, null, null, null, 1, null, 1, true), ustand, true).At(0, 0.28f, 0);
@@ -409,7 +409,7 @@ namespace ThinkingIt
             Bx(0.3f, 0.06f, 1.42f, pianoWood, piano).At(-0.42f, 0.74f, 0);
             Bx(0.16f, 0.025f, 1.36f, Std(0xece6d6, 0.4f), piano).At(-0.46f, 0.78f, 0);
             for (int i = 0; i < 24; i++) { if (new[] { 1, 4, 8, 11, 15, 18, 22 }.Contains(i)) continue; Bx(0.09f, 0.03f, 0.025f, Std(0x0a0a0a, 0.3f), piano).At(-0.41f, 0.8f, -0.66f + i * 0.057f); }
-            Bx(0.02f, 0.28f, 0.4f, Std(0xe8e0cc, 0.9f), piano).At(-0.32f, 1.02f, 0.1f).Rot(0, 0, 0.2f);
+            Bx(0.02f, 0.28f, 0.4f, Std(0xe8e0cc, 0.9f), piano).At(-0.35f, 1.0f, 0.1f).Rot(0, 0, -0.2f);
             piano.At(cx(10) + 0.6f, 0, cx(6)); Prop(piano, 10, 6); AddSuspect("piano", piano); pianoPos = piano.transform.position + Vector3.up;
             var stool = Grp("stool");
             Bx(0.4f, 0.06f, 0.6f, Std(0x1e120a, 0.4f), stool).At(0, 0.48f, 0);
@@ -420,7 +420,7 @@ namespace ThinkingIt
             Bx(0.7f, 0.55f, 0.55f, Std(0x2a2620, 0.5f), tv).At(0, 0.78f, 0.02f);
             tvScreen = Mats.Std(MathX.Hex(0x10141a), 0.08f, 0.4f, null, null, null, 1, MathX.Hex(0xc8d0e0), 0, false, false);
             Pl(0.52f, 0.4f, tvScreen, tv).At(-0.04f, 0.8f, -0.28f).RotY(PI);
-            foreach (var s in new[] { -1, 1 }) Cy(0.006f, 0.006f, 0.5f, 4, brass, tv).At(s * 0.12f, 1.25f, 0.05f).Rot(0, 0, s * 0.45f);
+            foreach (var s in new[] { -1, 1 }) Cy(0.006f, 0.006f, 0.5f, 4, brass, tv).At(s * 0.12f, 1.25f, 0.05f).Rot(0, 0, -s * 0.45f);
             tv.At(cx(4), 0, 9 * C - 0.4f); Prop(tv, 4, 8); AddSuspect("tv", tv); tvPos = tv.transform.position + Vector3.up * 0.8f;
             System.Action<float, float, float> chairAt = (x, z, rot) =>
             {
@@ -464,7 +464,7 @@ namespace ThinkingIt
             photoMat = Mats.Std(Color.white, 0.6f, 0, photoTex, null, null, 1, null, 1, false, false);
             Pl(0.3f, 0.235f, photoMat, photo).At(0, 0, 0.017f);
             Bx(0.03f, 0.2f, 0.15f, Std(0x2a1a10, 0.5f), photo).At(0, -0.06f, -0.08f).Rot(0.4f, 0, 0);
-            photo.At(cx(5) + 0.3f, 0.89f, cx(7) - 0.2f).Rot(-0.12f, PI + 0.5f, 0);
+            photo.At(cx(5) + 0.3f, 0.9f, cx(7) - 0.2f).Rot(0.12f, PI + 0.5f, 0);
             AddSuspect("photo", photo);
             // wall clock: wooden case, face, glass, real hands
             var clock = Grp("clock");
@@ -493,8 +493,8 @@ namespace ThinkingIt
             AddSuspect("painting", painting);
             // bathroom door: hinged, panelled. Closed... at first.
             var bath = Grp("bathroom door");
-            var hinge = Grp("hinge", bath); hinge.At(cx(5) - 0.6f, 0, 3 * C - 0.03f);
-            Bx(1.2f, 2.3f, 0.05f, Mats.Std(Color.white, 0.55f, 0, DoorSlab()), hinge).At(0.6f, 1.15f, 0);
+            var hinge = Grp("hinge", bath); hinge.At(cx(5) - 0.63f, 0, 3 * C - 0.03f);
+            Bx(1.26f, 2.37f, 0.05f, Mats.Std(Color.white, 0.55f, 0, DoorSlab()), hinge).At(0.63f, 1.185f, 0);
             Sp(0.04f, 12, 10, Mats.Std(MathX.Hex(0xc8a060), 0.3f, 0.8f), hinge).At(1.05f, 1.05f, -0.05f);
             foreach (var zx in new[] { -0.68f, 0.68f }) Bx(0.1f, 2.45f, 0.08f, trim, bath).At(cx(5) + zx, 1.22f, 3 * C - 0.02f);
             Bx(1.46f, 0.1f, 0.08f, trim, bath).At(cx(5), 2.42f, 3 * C - 0.02f);
@@ -504,7 +504,7 @@ namespace ThinkingIt
             var cab = Grp("cabinet");
             Bx(1.0f, 0.8f, 0.55f, shelfWood, cab).At(0, 0.4f, 0);
             foreach (var sx in new[] { -0.24f, 0.24f }) Bx(0.44f, 0.6f, 0.02f, Std(0x5a3a22, 0.6f), cab).At(sx, 0.4f, 0.285f);
-            cab.At(cx(2), 0, cx(8) + 0.3f); Prop(cab, 2, 8);
+            cab.At(cx(2), 0, 9 * C - 0.33f).RotY(PI); Prop(cab, 2, 8);
             var radio = Grp("radio");
             Bx(0.52f, 0.32f, 0.24f, Std(0x6a4426, 0.45f), radio);
             Cy(0.16f, 0.16f, 0.52f, 20, Std(0x6a4426, 0.45f), radio, false, 0, PI).At(0, 0.16f, 0).Rot(0, 0, PI / 2);
@@ -512,7 +512,7 @@ namespace ThinkingIt
             radioLed = new Material(Mats.Unlit(MathX.Hex(0x2a1600)));
             Pl(0.14f, 0.06f, radioLed, radio).At(0.14f, 0.04f, 0.122f);
             foreach (var kx in new[] { 0.09f, 0.19f }) Cy(0.025f, 0.025f, 0.03f, 12, Std(0x1a1410, 0.4f), radio).At(kx, -0.08f, 0.13f).Rot(PI / 2, 0, 0);
-            radio.At(cx(2), 0.97f, cx(8) + 0.2f);
+            radio.At(cx(2), 0.96f, 9 * C - 0.4f).RotY(PI);
             AddSuspect("radio", radio);
             radioPos = radio.transform.position;
 
@@ -545,7 +545,7 @@ namespace ThinkingIt
             painting.transform.localRotation = Quaternion.Euler(0, 0, L >= 3 ? 180 : 0);
             photoMat.SetTexture("_BaseMap", L >= 4 ? photoItTex : photoTex);
             mirrorFigure.SetActive(L >= 5);
-            bathHinge.localRotation = MathX.Euler3(0, L >= 6 ? -1.5f : L >= 3 ? -0.08f * (L - 2) : 0, 0);
+            bathHinge.localRotation = MathX.Euler3(0, L >= 6 ? 1.5f : L >= 3 ? 0.08f * (L - 2) : 0, 0);
             armchair.transform.localRotation = MathX.Euler3(0, L >= 7 ? -0.75f : PI + 0.5f, 0);
             tvOn = L >= 8;
             if (!tvOn) Mats.SetEmission(tvScreen, MathX.Hex(0xc8d0e0), 0);

@@ -20,6 +20,18 @@ namespace ThinkingIt
         public static Font Serif => serif ? serif : (serif = OS(new[] { "Cormorant Garamond", "Georgia", "Palatino Linotype", "Book Antiqua", "Times New Roman", "Liberation Serif", "DejaVu Serif" }));
         public static Font Sans => sans ? sans : (sans = OS(new[] { "Arial", "Helvetica", "Segoe UI", "Liberation Sans", "DejaVu Sans" }));
         public static Font Mono => mono ? mono : (mono = OS(new[] { "IBM Plex Mono", "Consolas", "Courier New", "Lucida Console", "Liberation Mono", "DejaVu Sans Mono" }));
+        static Font cutscene;
+        // the pixel font for the chapter intro cards (Assets/Resources/ThinkingIt/CutsceneFont.ttf); falls back to the mono font
+        public static Font Cutscene
+        {
+            get
+            {
+                if (cutscene) return cutscene;
+                cutscene = Resources.Load<Font>("ThinkingIt/CutsceneFont");
+                if (!cutscene) cutscene = Mono;
+                return cutscene;
+            }
+        }
         public static Font Get(Face f) => f == Face.Serif ? Serif : f == Face.Mono ? Mono : Sans;
 
         static Font OS(string[] names)

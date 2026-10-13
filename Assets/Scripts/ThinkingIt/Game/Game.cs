@@ -25,6 +25,7 @@ namespace ThinkingIt
     public class Game : MonoBehaviour
     {
         public static Game I;
+        bool sprinting, exhausted; float stamina = 1f, sprintK, breathT;
         [System.NonSerialized] public Chapter ch;
         [System.NonSerialized] public World w;
         [System.NonSerialized] public Hud hud;
@@ -92,7 +93,11 @@ namespace ThinkingIt
 
             w = new World("World");
             ch = Chapter.Create(n); ch.g = this; ch.w = w;
+            Random.InitState(LayoutStore.Seed(n));          // same build every time, so saved layout edits line up
             ch.Build();
+            LayoutStore.Apply(w.root, n);                   // your hand edits from Tools > Thinking It > Layout
+            foreach (var f in ch.focusables) if (f.group) f.baseY = f.group.transform.localPosition.y;
+            Random.InitState(System.Environment.TickCount); // back to real randomness for the actual game
             w.AutoObstacles();
             itModel = new ItModel(w.root);
 
@@ -322,9 +327,10 @@ namespace ThinkingIt
         {
             var d = GameData.Docs[id];
             reading = id; readingForbidden = d.forbidden;
-            hud.ShowDoc(d);
-            au.Noise(0.4f, 1800, 0.2f);
-            if (read.Add(id) && d.forbidden) { forbiddenRead++; dread = MathX.Clamp01(dread + 0.14f); }
+            if (d.terminal) { hud.ShowTerminal(d); au.Tone(880, 880, 0.07f, 0.1f); au.Tone(1320, 1320, 0.09f, 0.08f); }
+            else { hud.ShowDoc(d); au.Noise(0.4f, 1800, 0.2f); }
+            bool fresh = !d.terminal && read.Add(id);
+            if (fresh && d.forbidden) { forbiddenRead++; dread = MathX.Clamp01(dread + 0.14f); }
             if (d.forbidden) Settings.MarkForbidden(id);
         }
         public void CloseDoc() { reading = null; hud.HideDoc(); }
@@ -378,7 +384,7 @@ namespace ThinkingIt
 
         void Interact()
         {
-            if (reading != null) { CloseDoc(); return; }
+            if (reading != null) { if (hud.TerminalOpen && hud.TerminalNext()) return; CloseDoc(); return; }
             if (near == null) return;
             if (near.kind == "doc") OpenDoc(near.id);
             else ch.OnInteract(near);
@@ -443,6 +449,12 @@ namespace ThinkingIt
                 return;
             }
 
+            // F10: list (and tint red) every prop part that pushes into another one; F10 again clears it
+            if (kb != null && kb.f10Key.wasPressedThisFrame && state != GState.Intro)
+            {
+                if (OverlapScanner.Active) { OverlapScanner.Clear(); Hint("Overlap check cleared.", 2); }
+                else { var rep = OverlapScanner.Scan(w.root, chapterNum); Hint(rep.Split('\n')[0], 6); }
+            }
             if (kb != null && kb.f9Key.wasPressedThisFrame && (state == GState.Play || state == GState.Paused) && chapterNum < 5) { SceneFlow.Chapter(chapterNum + 1); return; }
 
             if (state == GState.Paused)
@@ -503,7 +515,7 @@ namespace ThinkingIt
             if (state != GState.End)
             {
                 PlaceCamera();
-                cam.fieldOfView = 72 - dread * 7 + Mathf.Sin(time * 1.3f) * dread * 2.5f;
+                cam.fieldOfView = 72 - dread * 7 + Mathf.Sin(time * 1.3f) * dread * 2.5f + sprintK * 6f;
                 fx.Apply(dread, time, exposure);
                 DrawHud();
             }
@@ -526,14 +538,19 @@ namespace ThinkingIt
             bool wantClosed = !cutscene && kb != null && (kb.spaceKey.isPressed || kb.qKey.isPressed) && reading == null && ch.AllowEyes;
             if (wantClosed == eyes) { eyes = !wantClosed; au.Click(); }
 
-            // movement
+            // movement (hold SHIFT to run: faster, loud, drains your breath)
+            sprinting = false;
             if (!cutscene && kb != null)
             {
                 int f = ((kb.wKey.isPressed || kb.upArrowKey.isPressed) ? 1 : 0) - ((kb.sKey.isPressed || kb.downArrowKey.isPressed) ? 1 : 0);
                 int s = ((kb.dKey.isPressed || kb.rightArrowKey.isPressed) ? 1 : 0) - ((kb.aKey.isPressed || kb.leftArrowKey.isPressed) ? 1 : 0);
-                if ((f != 0 || s != 0) && reading == null)
+                bool moving = (f != 0 || s != 0) && reading == null;
+                bool shift = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+                if (exhausted && stamina > 0.35f) exhausted = false;
+                sprinting = moving && shift && eyes && !exhausted && stamina > 0.02f;
+                if (moving)
                 {
-                    float sp = (eyes ? 2.5f : 1.2f) * dt;
+                    float sp = (eyes ? (sprinting ? 4.1f : 2.5f) : 1.2f) * dt;
                     float fx0 = -Mathf.Sin(yaw), fz = -Mathf.Cos(yaw);
                     float rx = fz, rz = -fx0;   // Unity's screen-right for this forward
                     float vx = fx0 * f + rx * s, vz = fz * f + rz * s, len = MathX.Hypot(vx, vz);
@@ -544,9 +561,26 @@ namespace ThinkingIt
                     float moved = MathX.Hypot(px - ox, pz - oz);
                     if (moved < sp * 0.3f) { bumpT -= dt; if (bumpT <= 0) { au.Bump(); bumpT = 0.45f; } }
                     walkPhase += moved * 3.2f; stepAcc += moved;
-                    if (stepAcc > 1.5f) { stepAcc = 0; if (w.Cell(px, pz) == '=' || ch.Wood(px, pz)) au.Step(true); else au.Step(false); }
+                    if (stepAcc > (sprinting ? 1.05f : 1.5f))
+                    {
+                        stepAcc = 0; if (w.Cell(px, pz) == '=' || ch.Wood(px, pz)) au.Step(true); else au.Step(false);
+                        if (sprinting) au.Noise(0.07f, 450, 0.16f, Synth.F.Lowpass);
+                    }
+                    if (sprinting)
+                    {
+                        // running is loud: it comes to look where you ran, and it frightens you
+                        int hx = Mathf.FloorToInt(px / World.C), hy = Mathf.FloorToInt(pz / World.C);
+                        if (hx >= 0 && hy >= 0 && hx < w.W && hy < w.H) w.heat[hy * w.W + hx] += dt * 1.4f;
+                        dread = MathX.Clamp01(dread + 0.01f * dt);
+                    }
                 }
             }
+
+            // breath
+            if (sprinting) { stamina -= dt / 4.5f; if (stamina <= 0.02f) { stamina = 0; exhausted = true; } }
+            else stamina = Mathf.Min(1f, stamina + dt / (exhausted ? 5f : 3f));
+            if (exhausted) { breathT -= dt; if (breathT <= 0) { breathT = 1.1f; au.Noise(0.55f, 1100, 0.12f, Synth.F.Bandpass, null, 0.8f, 0.18f); } }
+            sprintK = Mathf.MoveTowards(sprintK, sprinting ? 1f : 0f, dt * 4f);
 
             // zones, checkpoints
             string z = ch.Zone(px, pz);
@@ -646,6 +680,7 @@ namespace ThinkingIt
         void DrawHud()
         {
             bool play = state == GState.Play;
+            hud.SetStamina(stamina, exhausted);
             hud.SetEyes(!eyes && (play || state == GState.Cutscene), Mathf.Max(0, Mathf.Sin(time * (2 + dread * 3))) * 0.05f);
             string label = null;
             if (near != null) label = near.label ?? (near.kind == "doc" ? "read" : "open the door");

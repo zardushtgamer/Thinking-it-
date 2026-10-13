@@ -138,6 +138,7 @@ namespace ThinkingIt
                         {
                             if (Random.value < 0.18f) { off += 0.38f; continue; }   // gaps you can see through
                             float bw = 0.3f + Random.value * 0.08f, bh = 0.32f + Random.value * 0.12f;
+                            if (off + bw > 0.92f) break;   // never past the end of the shelf
                             int ci = Random.Range(0, boxCols.Length);
                             boxM[ci].Add(Matrix4x4.Translate(new Vector3(ox + off + bw / 2, sy + 0.015f + bh / 2, oz + MathX.Jit(0.3f))));
                             boxS[ci].Add(new Vector3(bw, bh, 0.42f + Random.value * 0.15f));
@@ -204,7 +205,7 @@ namespace ThinkingIt
             Pl(1.0f, 0.38f, Mats.Std(Color.white, 0.6f, 0, Sign("ARCHIVE B", "Records & Session Tapes"))).At(cx(4), 2.5f, C + 0.03f);
             // the stacks: row signs, a reading table, a book cart, a ladder
             string[] rows = { "1", "2", "3", "4", "5" }; int[] rowX = { 11, 14, 17, 20, 23 };
-            for (int i = 0; i < 5; i++) Pl(0.5f, 0.2f, Mats.Std(Color.white, 0.6f, 0, Sign("ROW " + rows[i], null))).At(cx(rowX[i]), 2.95f, cx(1) + 0.98f);
+            for (int i = 0; i < 5; i++) Pl(0.5f, 0.2f, Mats.Std(Color.white, 0.6f, 0, Sign("ROW " + rows[i], null))).At(cx(rowX[i]), 2.65f, cx(1) + 0.95f).RotY(PI);
             Prop(table(cx(15) + 1, cx(9), 1.6f, 0.8f, 0));
             bankersLamp(cx(15) + 0.5f, 0.79f, cx(9) - 0.1f, false);
             var cart = Grp("book cart");
@@ -216,7 +217,7 @@ namespace ThinkingIt
             var ladder = Grp("ladder");
             foreach (var sx in new[] { -0.22f, 0.22f }) Bx(0.05f, 2.6f, 0.05f, darkWood, ladder).At(sx, 1.3f, 0);
             for (int i = 0; i < 8; i++) Bx(0.44f, 0.03f, 0.05f, darkWood, ladder).At(0, 0.3f + i * 0.3f, 0);
-            ladder.At(cx(16) + 0.2f, 0, cx(3)).Rot(-0.25f, PI / 2, 0);
+            ladder.At(cx(16) + 0.33f, 0, cx(3)); ladder.transform.localRotation = Quaternion.AngleAxis(-0.25f * Mathf.Rad2Deg, Vector3.forward) * Quaternion.AngleAxis(90f, Vector3.up);   // leaning on the shelf
             cagedBulb(cx(12) + 1, cx(3), 1.2f, false); cagedBulb(cx(18) + 1, cx(3), 1.0f, true); cagedBulb(cx(24) + 1, cx(4), 1.0f, false);
             cagedBulb(cx(15) + 1, cx(7), 0.9f, true); cagedBulb(cx(21) + 1, cx(7), 0.9f, false);
             // papers spilling out on the floor of the stacks
@@ -232,11 +233,11 @@ namespace ThinkingIt
             {
                 var rack = Grp("tape rack");
                 Bx(1.6f, 2.0f, 0.4f, steel, rack).At(0, 1.0f, 0);
-                for (int s = 0; s < 4; s++) for (int k = 0; k < 6; k++) Cy(0.11f, 0.11f, 0.025f, 18, Std(MathX.Pick(tapeCols), 0.4f), rack).At(-0.6f + k * 0.24f, 0.3f + s * 0.45f, 0.22f).Rot(0, 0, PI / 2);
-                rack.At(cx(9 + r * 3) + 0.4f, 0, cx(15) + 0.75f).RotY(PI); Prop(rack);
+                for (int s = 0; s < 4; s++) for (int k = 0; k < 6; k++) Cy(0.11f, 0.11f, 0.025f, 18, Std(MathX.Pick(tapeCols), 0.4f), rack).At(-0.6f + k * 0.24f, 0.3f + s * 0.45f, 0.215f).Rot(PI / 2, 0, 0);
+                rack.At(cx(9 + r * 3), 0, cx(15) + 0.75f).RotY(PI); Prop(rack);
             }
             Prop(table(cx(12), cx(13), 1.4f, 0.8f, 0), 12, 13);
-            Pl(1.1f, 0.4f, Mats.Std(Color.white, 0.6f, 0, Sign("RESTRICTED", "Authorised staff only"))).At(cx(12), 2.75f, 10 * C + C - 0.03f).RotY(PI);
+            Pl(1.1f, 0.4f, Mats.Std(Color.white, 0.6f, 0, Sign("RESTRICTED", "Authorised staff only"))).At(cx(12), 2.75f, 10 * C - 0.03f).RotY(PI);
             redLight = w.PointLight(new Vector3(cx(12), 2.8f, cx(13)), MathX.Hex(0xff2a14), 0.9f, 9);
             redMat = Mats.Std(MathX.Hex(0x551010), 0.5f, 0, null, null, null, 1, MathX.Hex(0xff2010), 1, false, false);
             Sp(0.1f, 14, 8, redMat, null, 0, PI * 2, 0, PI / 2).At(cx(12), WALL_H, cx(13)).Rot(PI, 0, 0);
@@ -245,11 +246,11 @@ namespace ThinkingIt
             Bx(0.8f, 0.12f, 1.9f, Std(0x2a4a3a, 0.9f), camp).At(0, 0.06f, 0);
             Bx(0.5f, 0.12f, 0.3f, Std(0x6a6a5a, 0.9f), camp).At(0, 0.14f, -0.75f);
             Bx(0.4f, 0.55f, 0.25f, Std(0x6a3a1a, 0.8f), camp).At(0.7f, 0.28f, -0.5f).RotY(0.4f);
-            for (int i = 0; i < 3; i++) Cy(0.04f, 0.04f, 0.11f, 10, Mats.Std(MathX.Hex(0x9a9a9a), 0.4f, 0.6f), camp).At(-0.6f + i * 0.12f, 0.055f, 0.6f + (i % 2) * 0.1f);
+            for (int i = 0; i < 3; i++) Cy(0.04f, 0.04f, 0.11f, 10, Mats.Std(MathX.Hex(0x9a9a9a), 0.4f, 0.6f), camp).At(-0.75f + i * 0.12f, 0.055f, 0.6f + (i % 2) * 0.1f);
             Cy(0.07f, 0.08f, 0.22f, 12, Mats.Std(MathX.Hex(0x3a3020), 0.5f, 0, null, null, null, 1, MathX.Hex(0xff9a40), 0.8f), camp).At(0.6f, 0.11f, 0.4f);
             camp.At(cx(18), 0, cx(19)).NoShadow();
             w.PointLight(new Vector3(cx(18) + 0.6f, 0.4f, cx(19) + 0.4f), MathX.Hex(0xff9a40), 0.35f, 4);
-            for (int i = 0; i < 5; i++) Pl(0.2f, 0.26f, Std(0xe8e0c8, 0.9f)).At(cx(18) - 0.6f + i * 0.3f, 1.1f + (i % 2) * 0.3f, cx(17) + 1.03f).Rot(0, 0, MathX.Jit(0.3f));
+            for (int i = 0; i < 5; i++) Pl(0.2f, 0.26f, Std(0xe8e0c8, 0.9f)).At(cx(19) - 0.6f + i * 0.3f, 1.1f + (i % 2) * 0.3f, cx(17) + 1.03f).Rot(0, 0, MathX.Jit(0.3f));
             Pl(0.9f, 0.34f, Mats.Std(Color.white, 0.6f, 0, Sign("WING C", "— the lake wing —"))).At(17 * C + 0.04f, 2.75f, cx(19)).RotY(PI / 2);
 
             // ---- the listening room: a long desk of tape decks, headphones, a speaker nobody is meant to use ----
@@ -263,7 +264,7 @@ namespace ThinkingIt
                 var hp = Grp("headphones", deck);
                 To(0.09f, 0.012f, 6, 16, Std(0x1a1a1a, 0.6f), hp);
                 foreach (var sx in new[] { -0.09f, 0.09f }) Cy(0.045f, 0.045f, 0.03f, 12, Std(0x1a1a1a, 0.7f), hp).At(sx, 0, 0).Rot(0, 0, PI / 2);
-                hp.At(0.38f, 0.03f, 0.05f).Rot(-PI / 2, 0, 0.3f);
+                hp.At(0.38f, 0.045f, 0.05f).Rot(-PI / 2, 0, 0.3f);
                 deck.At(cx(7) + 0.3f, 0.79f, cx(10) - 1.6f + i * 1.6f).RotY(-PI / 2);
                 var ch2 = Grp("chair");
                 Bx(0.44f, 0.05f, 0.42f, wood, ch2).At(0, 0.45f, 0);
@@ -275,9 +276,9 @@ namespace ThinkingIt
             Bx(0.5f, 0.8f, 0.4f, darkWood, speaker).At(0, 0.4f, 0);
             Cy(0.16f, 0.16f, 0.02f, 20, Std(0x1a1a1a, 0.9f), speaker).At(0, 0.5f, 0.2f).Rot(PI / 2, 0, 0);
             speaker.At(cx(7) + 0.4f, 0, cx(12) + 0.5f).RotY(-PI * 0.75f); Prop(speaker);
-            for (int i = 0; i < 2; i++) { var rk = Grp("tape rack"); Bx(1.6f, 2.0f, 0.4f, steel, rk).At(0, 1.0f, 0); for (int sh = 0; sh < 4; sh++) for (int k2 = 0; k2 < 6; k2++) Cy(0.11f, 0.11f, 0.025f, 18, Std(MathX.Pick(tapeCols), 0.4f), rk).At(-0.6f + k2 * 0.24f, 0.3f + sh * 0.45f, 0.22f).Rot(0, 0, PI / 2); rk.At(C + 0.25f, 0, cx(10) + i * 2.4f - 0.6f).RotY(PI / 2); Prop(rk); }
+            for (int i = 0; i < 2; i++) { var rk = Grp("tape rack"); Bx(1.6f, 2.0f, 0.4f, steel, rk).At(0, 1.0f, 0); for (int sh = 0; sh < 4; sh++) for (int k2 = 0; k2 < 6; k2++) Cy(0.11f, 0.11f, 0.025f, 18, Std(MathX.Pick(tapeCols), 0.4f), rk).At(-0.6f + k2 * 0.24f, 0.3f + sh * 0.45f, 0.215f).Rot(PI / 2, 0, 0); rk.At(C + 0.25f, 0, cx(10) + i * 2.4f - 0.6f).RotY(PI / 2); Prop(rk); }
             bankersLamp(cx(7) + 0.4f, 0.79f, cx(10) + 0.8f, true);
-            Pl(1.0f, 0.38f, Mats.Std(Color.white, 0.6f, 0, Sign("DEEP STACKS", "Boxes 1 – 40"))).At(cx(4), 2.5f, 13 * C - 0.03f).RotY(PI);
+            Pl(1.0f, 0.38f, Mats.Std(Color.white, 0.6f, 0, Sign("DEEP STACKS", "Boxes 1 – 40"))).At(cx(5), 2.5f, 13 * C - 0.03f).RotY(PI);
             // ---- the deep stacks: older shelving, boxes on the floor, a second tape machine left running ----
             for (int i = 0; i < 8; i++)
             {
@@ -294,7 +295,7 @@ namespace ThinkingIt
 
             // ---- the vault door: a painted-on outline until you look at it properly ----
             var gd = Grp("vault door");
-            foreach (var b in new[] { (-0.85f, 1.3f, 0f, 0.15f, 2.6f, C), (0.85f, 1.3f, 0f, 0.15f, 2.6f, C), (0f, 2.65f, 0f, 1.85f, 0.15f, C), (0f, 1.3f, 0.6f, 1.5f, 2.5f, 0.12f) })
+            foreach (var b in new[] { (-0.875f, 1.3f, 0f, 0.25f, 2.6f, C), (0.875f, 1.3f, 0f, 0.25f, 2.6f, C), (0f, 2.9f, 0f, C, 0.6f, C), (0f, 1.3f, 0.6f, 1.48f, 2.5f, 0.12f) })
                 Bx(b.Item4, b.Item5, b.Item6, null, gd).At(b.Item1, b.Item2, b.Item3);
             gd.At(cx(12), 0, cx(10));
             vaultDoor = AddFocusable("door", gd, new[] { new Vector2Int(12, 10) }, new Vector3(cx(12), 1.4f, cx(10)), 2.6f, Std(0x6a6e64));
@@ -309,11 +310,11 @@ namespace ThinkingIt
                 AddInteract("doc", "doc", id, p.transform.position, p, "read");
             };
             docAt(cx(3) - 0.1f, 0.8f, cx(2) + 0.3f, "a_log");
-            docAt(cx(1) + 0.25f, 1.21f, cx(5), "a_card");
+            docAt(cx(1) - 0.45f, 1.21f, cx(5), "a_card");
             docAt(cx(15) + 1.2f, 0.8f, cx(9), "a_intake");
             docAt(cx(25) + 0.3f, 0.78f, cx(2), "a_p07");
             docAt(cx(12) + 0.4f, 0.8f, cx(13) + 0.1f, "a_lund");
-            docAt(cx(18) + 0.3f, 0.14f, cx(19) - 0.7f, "a_teo");
+            docAt(cx(18) + 0.1f, 0.125f, cx(19) - 0.2f, "a_teo");
             docAt(cx(7) + 0.3f, 0.8f, cx(10) - 0.8f, "a_listen");
             docAt(cx(4), 0.41f, cx(20) + 0.4f, "a_deep");
             var labelM = Mats.Std(Color.white, 0.8f, 0, Label());
@@ -327,11 +328,11 @@ namespace ThinkingIt
                 World.Tagged(t, "tape", id);
                 AddInteract("tape", "tape", id, t.transform.position, t, "play the tape");
             };
-            tapeAt(cx(25) + 0.1f, 0.79f, cx(2) + 0.1f, "tape1");
+            tapeAt(cx(25) + 0.1f, 0.779f, cx(2) + 0.1f, "tape1");
             tapeAt(cx(12) - 0.3f, 0.8f, cx(13) - 0.1f, "tape2");
             tapeAt(cx(18) - 0.15f, 0.13f, cx(19) + 0.2f, "tape3");
-            tapeAt(cx(7) + 0.3f, 0.97f, cx(10), "tapeA");    // still in the middle deck
-            tapeAt(cx(6) + 0.1f, 0.47f, cx(20) + 0.45f, "tapeB");  // on top of the running machine
+            tapeAt(cx(7) + 0.3f, 0.98f, cx(10), "tapeA");    // still in the middle deck
+            tapeAt(cx(6) + 0.1f, 0.455f, cx(20) + 0.45f, "tapeB");  // on top of the running machine
             tapeAt(cx(1), 0.41f, cx(17) + 0.4f, "tapeC");
             AddInteract("exit", "exit", null, new Vector3(cx(16) + 0.8f, 1.2f, cx(19)), null, "open the door");
 
