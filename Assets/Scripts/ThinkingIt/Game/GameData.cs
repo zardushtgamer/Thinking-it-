@@ -21,12 +21,12 @@ namespace ThinkingIt
                 + "\f[ SPRINTING ]\n\nHold SHIFT while walking to run.\n\nRunning is faster, but it is loud.\nThe bar at the bottom of your screen is your breath.\nWhen it runs out you must walk until it returns.\n\nWherever you run, it will come to look."
                 + "\f[ IT ]\n\nSubject 14 described a tall shape\nstanding in the corner of the room.\n\nIt does not move while you look at it.\nIt is drawn to the places you keep looking.\n\nIt is made of attention.\nWe do not know what it wants.\nWe know it gets heavier when it is described."
                 + "\f[ DREAD ]\n\nSome of the documents here describe it.\nReading them is not recommended.\n\nFear builds as you read, stare and run.\nThe more afraid you are, the closer it comes.\n\nIf it catches you, you start again\nfrom your last checkpoint."
-                + "\f[ END OF ORIENTATION ]\n\nFind the power. Find the way out.\nAnd whatever you do —\n\nDon't think about it.\n\n— Dr. H. Lund")
+                + "\f[ END OF ORIENTATION ]\n\nFind every note. Find every tape. Find the way out.\nAnd whatever you do —\n\nDon't think about it.\n\n— Dr. H. Lund")
             { terminal = true },
             ["brochure"] = new Doc("Halvard Institute for Cognitive Research", false,
                 "SUMMER VOLUNTEER PROGRAM — 1998\n\nPaid participation for young people aged 13–17.\nRoom and board provided. Six weeks.\n\n\"Learn to quiet your mind.\"\n\n<i>Project White Bear is a study of healthy forgetting.</i>"),
             ["teoNote"] = new Doc("A note, in Teo's handwriting", false,
-                "Generator room is through the east offices.\n\nThe corridor isn't there unless you LOOK at it. Properly look. Like you mean it.\n\nI'm not crazy.\n\n— T"),
+                "Everything I found is in this building somewhere. Notes, tapes. Find all of it before you go down the stairs.\n\nThe doors are open. Something else is, too. It is fast and it cannot turn. Use that.\n\nI'm not crazy.\n\n— T"),
             ["session41"] = new Doc("Session Log 41", true,
                 "Subject 14 (M.V., age 14) instructed to suppress target memory (the lake).\n\nSuppression successful.\n\nResidual effect: subject reports \"someone standing in the corner of the room\" whenever she stops trying. It is tall. It does not move while she looks at it.\n\nWe have instructed her not to look at it."),
             ["memo"] = new Doc("Internal Memo — RE: the shape", true,
@@ -41,7 +41,7 @@ namespace ThinkingIt
             ["w_iso"] = new Doc("Scratched into the isolation room door", true,
                 "THEY PUT ME IN HERE SO IT WOULD HAVE NOWHERE TO STAND\n\nIT STANDS IN THE CORNER ANYWAY\n\nIF YOU CAN READ THIS IT CAN READ IT TOO\n\n— M"),
             ["w_fuse"] = new Doc("Maintenance note, taped to the breaker", false,
-                "Pulled the three main fuses so the night staff stop switching the generator back on.\n\nOne is in the ward. One is on my desk in the offices. One I put somewhere nobody will go.\n\nThe lights only make it worse. Leave them off.\n\n— R. (maintenance)"),
+                "Breaker is back on. I don't care what the night staff say.\n\nSomething keeps running the corridors after midnight. Heavy. Fast. Never slows for a corner, just hits the wall and stands there.\n\nDo not run where it can hear you.\n\n— R. (maintenance)"),
 
             ["diary1"] = new Doc("Participant 07 — diary, day 3", false,
                 "They gave me a room to practise in. The same room every day.\n\nDr. Lund says the trick is to notice nothing. Nothing changes here. Nothing is allowed to change.\n\nI counted the things in the room so I would know."),
@@ -162,6 +162,30 @@ namespace ThinkingIt
         public class Tape { public string title; public Line[] lines; }
         public static readonly Dictionary<string, Tape> Tapes = new Dictionary<string, Tape>
         {
+            ["c1a"] = new Tape { title = "TAPE 12 — night nurse, Ward A", lines = new[] {
+                new Line("NURSE ALLEN", "Night log, ward A. Bed three is awake again.", 4),
+                new Line("NURSE ALLEN", "Something came past the door at two. Running. It did not slow down.", 5),
+                new Line("NURSE ALLEN", "It hit the end wall so hard the lamp fell. Then nothing, for a long time.", 5),
+                new Line("NURSE ALLEN", "Then it turned. I heard it turn. Slow. Like it had to think about how.", 5.5f) } },
+            ["c1b"] = new Tape { title = "TAPE 13 — Dr. Lund, dictation", lines = new[] {
+                new Line("DR. LUND", "Memo to myself. The suppression does not remove the memory. It moves it.", 5.5f),
+                new Line("DR. LUND", "Eleven children. Eleven things that should have been grief. They have to go somewhere.", 6),
+                new Line("DR. LUND", "The second one is made of flesh. It was the first to learn to hunt.", 5),
+                new Line("DR. LUND", "I call it HIM, because I refuse to call it anything worse.", 4.5f) } },
+            ["c1c"] = new Tape { title = "TAPE 14 — security desk, 02:14", lines = new[] {
+                new Line("GUARD", "Camera four. Hall. Something is standing at the far end.", 4.5f),
+                new Line("GUARD", "It's looking at the wall. It's not moving. It's... waiting?", 4.5f),
+                new Line("GUARD", "Radio says don't run. Radio says it hears running.", 4),
+                new Line("GUARD", "I'm going to walk. I'm going to walk very quietly to the stairs.", 5) } },
+            ["c1d"] = new Tape { title = "TAPE 15 — Participant 03, exit interview", lines = new[] {
+                new Line("PARTICIPANT 03", "They say I'm cured. I don't feel cured. I feel emptied.", 5),
+                new Line("DR. LUND", "That is what cured feels like.", 3),
+                new Line("PARTICIPANT 03", "Where did it go, then? What you took out?", 4),
+                new Line("DR. LUND", "Somewhere it can't hurt you. Somewhere with a lot of corridors.", 5) } },
+            ["c1e"] = new Tape { title = "TAPE 16 — maintenance, a warning", lines = new[] {
+                new Line("R. (MAINTENANCE)", "If you're listening to this, the floor in the old corridor already went.", 5),
+                new Line("R. (MAINTENANCE)", "Don't cross where it's weak. And if it's chasing you, put a wall between you.", 5.5f),
+                new Line("R. (MAINTENANCE)", "It can't steer. It can only go. Let it go. Then walk away.", 5) } },
             ["tape1"] = new Tape { title = "TAPE 1 — orientation, 1998", lines = new[] {
                 new Line("DR. LUND", "Project White Bear. Session one. We do not teach them to forget.", 5),
                 new Line("DR. LUND", "We teach them to put it somewhere else.", 4.5f),

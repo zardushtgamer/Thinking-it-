@@ -417,18 +417,13 @@ namespace ThinkingIt
             stool.At(cx(10) - 0.35f, 0, cx(6)); stoolGo = stool; stoolHome = stool.transform.localPosition;
             var tv = Grp("tv");
             Bx(1.0f, 0.5f, 0.5f, shelfWood, tv).At(0, 0.25f, 0);
-            Bx(0.7f, 0.55f, 0.55f, Std(0x2a2620, 0.5f), tv).At(0, 0.78f, 0.02f);
             tvScreen = Mats.Std(MathX.Hex(0x10141a), 0.08f, 0.4f, null, null, null, 1, MathX.Hex(0xc8d0e0), 0, false, false);
-            Pl(0.52f, 0.4f, tvScreen, tv).At(-0.04f, 0.8f, -0.28f).RotY(PI);
-            foreach (var s in new[] { -1, 1 }) Cy(0.006f, 0.006f, 0.5f, 4, brass, tv).At(s * 0.12f, 1.25f, 0.05f).Rot(0, 0, -s * 0.45f);
+            TvModel(tv, tvScreen).At(0, 0.5f, 0.02f).RotY(PI);   // the model's glass faces -Z here, into the room
+            foreach (var s in new[] { -1, 1 }) Cy(0.006f, 0.006f, 0.5f, 4, brass, tv).At(s * 0.12f, 1.2f, 0.05f).Rot(0, 0, -s * 0.45f);
             tv.At(cx(4), 0, 9 * C - 0.4f); Prop(tv, 4, 8); AddSuspect("tv", tv); tvPos = tv.transform.position + Vector3.up * 0.8f;
             System.Action<float, float, float> chairAt = (x, z, rot) =>
             {
-                var cg = Grp("dining chair");
-                Bx(0.45f, 0.05f, 0.45f, shelfWood, cg).At(0, 0.46f, 0);
-                Bx(0.45f, 0.5f, 0.04f, shelfWood, cg).At(0, 0.74f, -0.21f);
-                foreach (var sx in new[] { -0.19f, 0.19f }) foreach (var sz in new[] { -0.19f, 0.19f }) Bx(0.035f, 0.46f, 0.035f, shelfWood, cg).At(sx, 0.23f, sz);
-                cg.At(x, 0, z).RotY(rot);
+                ChairModel(x, z, rot);
             };
             chairAt(cx(5) - 0.15f, cx(7) - 0.75f, 0.15f); chairAt(cx(5) + 0.2f, cx(7) + 0.78f, PI - 0.3f);
             Bx(0.55f, 0.32f, 0.45f, chairM).At(cx(7) - 0.9f, 0.16f, cx(8) - 0.9f);

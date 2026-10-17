@@ -52,7 +52,7 @@ namespace ThinkingIt
         public void Apply(float dread, float time, float exposure = 0)
         {
             float pulse = dread > 0.35f ? Mathf.Max(0, Mathf.Sin(time * (3 + dread * 4))) * dread * 0.15f : 0;
-            vig.intensity.Override(Mathf.Clamp01(0.38f + dread * 0.3f + pulse));
+            vig.intensity.Override(Mathf.Clamp01(0.26f + dread * 0.3f + pulse));
             color.saturation.Override(-dread * 80);
             color.contrast.Override(dread * 35);
             color.postExposure.Override(exposure - dread * 0.35f);

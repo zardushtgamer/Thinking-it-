@@ -11,7 +11,8 @@ namespace ThinkingIt
     public class World
     {
         public const float C = 2f, WALL_H = 3.2f, EYE = 1.65f;
-        public static float LK = 4.5f;   // light intensity scale: the web version used non-physical falloff
+        public static float AMB = 4.5f;   // ambient light multiplier (on top of each chapter's Ambient)
+        public static float LK = 9f;   // light intensity scale: the web version used non-physical falloff
 
         public int W, H;
         public char[,] grid;   // [y, x]

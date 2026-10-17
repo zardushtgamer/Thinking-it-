@@ -111,7 +111,7 @@ namespace ThinkingIt
             w[16, 20] = 'W'; w[16, 21] = 'W'; w[16, 23] = 'W';                          // ...with planks missing
 
             // ---- materials ----
-            var instWall = Mats.Std(Color.white, 0.85f, 0, Chapter1.WallTex());
+            var instWall = Chapter1.WallMat();
             var planks = TextureLibrary.Find(l => l.brownPlanks);
             var panel = Mats.Std(Color.white, 0.8f, 0, WoodPanel());
             var siding = planks != null ? Mats.Std(MathX.Hex(0x707070), 0.9f, 0, planks.diff, new Vector2(1, 1.6f), planks.nor, 1) : Mats.Std(Color.white, 0.9f, 0, Siding());
@@ -128,7 +128,7 @@ namespace ThinkingIt
 
             // floors and ceilings, room by room
             var lino = TextureLibrary.Find(l => l.oldLinoleum);
-            var linoM = lino != null ? Mats.Std(Color.white, 0.25f, 0, lino.diff, new Vector2(10, 4), lino.nor, 0.6f) : Std(0x8e8a7c, 0.4f);
+            var linoM = Chapter1.FloorMat(new Vector2(10, 4), 0.45f);
             Slab(0, 0, 13, 8, linoM, 0, "floor");
             var lam = TextureLibrary.Find(l => l.laminateFloor);
             var lamM = lam != null ? Mats.Std(Color.white, 0.5f, 0, lam.diff, new Vector2(8, 7), lam.nor, 0.7f) : Std(0x6a4a2a, 0.6f);
@@ -237,11 +237,7 @@ namespace ThinkingIt
             table.At(cx(21) + 0.5f, 0, cx(3) + 0.5f); Prop(table, 21, 3);
             foreach (var c in new[] { (cx(21) - 0.4f, cx(3) - 0.2f, 0.3f), (cx(21) + 0.7f, cx(3) + 1.2f, PI - 0.2f) })
             {
-                var ch = Grp("chair");
-                Bx(0.45f, 0.05f, 0.45f, wood, ch).At(0, 0.46f, 0);
-                Bx(0.45f, 0.5f, 0.04f, wood, ch).At(0, 0.74f, -0.21f);
-                foreach (var sx in new[] { -0.19f, 0.19f }) foreach (var sz in new[] { -0.19f, 0.19f }) Bx(0.035f, 0.46f, 0.035f, wood, ch).At(sx, 0.23f, sz);
-                ch.At(c.Item1, 0, c.Item2).RotY(c.Item3);
+                ChairModel(c.Item1, c.Item2, c.Item3);
             }
             var boat = Grp("paper boat");
             Bx(0.2f, 0.035f, 0.07f, null, boat).At(0, 0.018f, 0);
@@ -290,6 +286,12 @@ namespace ThinkingIt
             Bx(1.0f, 0.8f, 0.2f, chairM, arm).At(0, 0.8f, -0.38f);
             foreach (var sx in new[] { -0.5f, 0.5f }) Bx(0.16f, 0.55f, 0.9f, chairM, arm).At(sx, 0.48f, 0);
             arm.At(cx(23), 0, cx(7)).RotY(-PI / 2 - 0.4f); Prop(arm, 23, 7);
+            var rocker = BakedMesh.Spawn(w, "Rockingchair");
+            if (rocker != null)
+            {   // beside the rug, turned toward its centre (the seat faces +Z)
+                var rp = new Vector3(cx(21), 0, cx(8)); var rc = new Vector3(cx(19) + 1, 0, cx(7));
+                rocker.At(rp.x, 0, rp.z).RotY(Mathf.Atan2(rc.x - rp.x, rc.z - rp.z)); Prop(rocker, 21, 8);
+            }
             w.FloorPlane(3.6f, 2.4f, Mats.Std(MathX.Hex(0x8a6a4a), 1), new Vector3(cx(19) + 1, 0.006f, cx(7)), 0).NoShadow();
             // fireplace on the north wall of the living room
             var fp = Grp("fireplace"); var stone = Std(0x6a665e, 0.95f);
@@ -345,28 +347,23 @@ namespace ThinkingIt
             mag.At(31 * C - 0.65f, 0.57f, cx(2) + 0.5f).RotY(0.5f);
             AddFocusable("magazine", mag, null, mag.transform.position, 2.8f, Std(0xd04a8a, 0.7f));
             memoryGlow["magazine"] = w.PointLight(mag.transform.position + new Vector3(0, 0.4f, 0), MathX.Hex(0xc8d8ff), 0.12f, 1.6f);
-            var mdesk = Grp("desk");
-            Bx(1.3f, 0.05f, 0.6f, wood, mdesk).At(0, 0.74f, 0);
-            foreach (var l in new[] { (-0.6f, -0.25f), (0.6f, -0.25f), (-0.6f, 0.25f), (0.6f, 0.25f) }) Bx(0.05f, 0.74f, 0.05f, darkWood, mdesk).At(l.Item1, 0.37f, l.Item2);
-            mdesk.At(cx(28), 0, 6 * C - 0.35f); Prop(mdesk);
-            var mchair = Grp("chair");
-            Bx(0.42f, 0.05f, 0.42f, wood, mchair).At(0, 0.46f, 0);
-            Bx(0.42f, 0.5f, 0.04f, wood, mchair).At(0, 0.74f, -0.2f);
-            foreach (var sx in new[] { -0.18f, 0.18f }) foreach (var sz in new[] { -0.18f, 0.18f }) Bx(0.035f, 0.46f, 0.035f, wood, mchair).At(sx, 0.23f, sz);
-            mchair.At(cx(28) + 0.2f, 0, 6 * C - 1.0f).RotY(0.3f); Prop(mchair);
+            var mdeskM = BakedMesh.Spawn(w, "SchoolDesk");
+            if (mdeskM != null) { mdeskM.At(cx(28), 0, 6 * C - 0.35f); Prop(mdeskM); }
+            var mchairM = BakedMesh.Spawn(w, "SchoolChair");
+            if (mchairM != null) { mchairM.At(cx(28) + 0.15f, 0, 6 * C - 1.0f).RotY(0.3f); Prop(mchairM); }   // seat faces +Z, toward the desk
             var cam = Grp("camera");
             Bx(0.14f, 0.09f, 0.07f, null, cam);
             Cy(0.03f, 0.03f, 0.05f, 12, null, cam).At(0, 0, 0.055f).Rot(PI / 2, 0, 0);
             Bx(0.03f, 0.02f, 0.03f, null, cam).At(-0.04f, 0.055f, 0);
-            cam.At(cx(28) - 0.3f, 0.81f, 6 * C - 0.4f).RotY(PI + 0.4f);
+            cam.At(cx(28) - 0.2f, 0.81f, 6 * C - 0.4f).RotY(PI + 0.4f);
             AddFocusable("camera", cam, null, cam.transform.position, 2.8f, Mats.Std(MathX.Hex(0x2a2a2a), 0.4f, 0.5f));
             memoryGlow["camera"] = w.PointLight(cam.transform.position + new Vector3(0, 0.35f, 0), MathX.Hex(0xc8d8ff), 0.12f, 1.6f);
             var dlamp = Grp("desk lamp");
             Cy(0.07f, 0.08f, 0.02f, 12, darkWood, dlamp);
             Cy(0.01f, 0.01f, 0.35f, 6, darkWood, dlamp).At(0, 0.17f, 0);
             Cy(0.05f, 0.12f, 0.12f, 16, Mats.Std(MathX.Hex(0xe8d8b0), 1, 0, null, null, null, 1, MathX.Hex(0xffb060), 0.8f, true), dlamp, true).At(0, 0.36f, 0);
-            dlamp.At(cx(28) + 0.45f, 0.77f, 6 * C - 0.45f).NoShadow();
-            w.PointLight(new Vector3(cx(28) + 0.45f, 1.2f, 6 * C - 0.6f), MathX.Hex(0xffb070), 1.1f, 8, true);
+            dlamp.At(cx(28) + 0.22f, 0.8f, 6 * C - 0.45f).NoShadow();
+            w.PointLight(new Vector3(cx(28) + 0.22f, 1.2f, 6 * C - 0.6f), MathX.Hex(0xffb070), 1.1f, 8, true);
             var wardrobe = Grp("wardrobe");
             Bx(1.2f, 2.0f, 0.55f, wood, wardrobe).At(0, 1.0f, 0);
             Bx(0.01f, 1.9f, 0.01f, darkWood, wardrobe).At(0, 1.0f, 0.28f);
@@ -704,7 +701,7 @@ namespace ThinkingIt
             float d = Mathf.Clamp01((cutT - 6) / 14f);
             moon.intensity = Mathf.Lerp(0.22f, 0.04f, d);
             lantern.intensity = Mathf.Lerp(1.0f, 0.1f, d) * World.LK;
-            RenderSettings.ambientLight = Color.Lerp(Ambient, Color.black, d);
+            RenderSettings.ambientLight = Color.Lerp(Ambient * World.AMB, Color.black, d);
             RenderSettings.fogDensity = Mathf.Lerp(FogDensity, 0.12f, d);
             g.exposure = -d * 0.4f;
             g.dread = Mathf.Lerp(0.1f, 0.45f, d);

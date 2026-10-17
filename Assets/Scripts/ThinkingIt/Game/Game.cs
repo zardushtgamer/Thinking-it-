@@ -6,13 +6,22 @@ using UnityEngine.Rendering.Universal;
 
 namespace ThinkingIt
 {
-    public enum GState { Intro, Play, Paused, Caught, End, Cutscene }
+    public enum GState { Intro, Play, Paused, Caught, End, Cutscene, Switch }
 
     public class ItState
     {
         public string state = "gone";
         public float x, z, seenT, cool = 4, stepT, wanderX, wanderZ, fade;
         public bool wasSeen, hasWander;
+    }
+
+    // One chapter's level, kept alive while you are somewhere else so you can walk back to it.
+    public class Level
+    {
+        public int n; public Chapter ch; public World w; public ItModel it;
+        public bool visited, done, hasExit;
+        public Vector3 start, exit;      // x, z, yaw
+        public Interactable fwdPortal;
     }
 
     public struct Gaze
@@ -26,6 +35,7 @@ namespace ThinkingIt
     {
         public static Game I;
         bool sprinting, exhausted; float stamina = 1f, sprintK, breathT;
+        public bool Sprinting => sprinting;   // running is loud (HIM listens for it)
         [System.NonSerialized] public Chapter ch;
         [System.NonSerialized] public World w;
         [System.NonSerialized] public Hud hud;
@@ -38,6 +48,9 @@ namespace ThinkingIt
 
         public GState state = GState.Intro;
         public float time, dread;
+        [System.NonSerialized] public MaraBody body;
+        public static bool DreadFx = false;   // screen distortion, heartbeat, whispers and shaking that follow dread (off for now)
+        float FxDread => DreadFx ? dread : 0f;
 
         // the player
         public float px, pz, yaw, pitch;
@@ -87,24 +100,12 @@ namespace ThinkingIt
             fl.transform.localPosition = new Vector3(0.15f, -0.12f, 0);
             fl.transform.localRotation = Quaternion.LookRotation(new Vector3(-0.15f, 0.02f, 4f));
             flash = fl.AddComponent<Light>(); flash.type = LightType.Spot; flash.color = MathX.Hex(0xfff0d8);
-            flash.range = 18; flash.spotAngle = 0.42f * 2 * Mathf.Rad2Deg; flash.innerSpotAngle = flash.spotAngle * 0.4f;
+            flash.range = 30; flash.spotAngle = 0.42f * 2 * Mathf.Rad2Deg; flash.innerSpotAngle = flash.spotAngle * 0.4f;
             flash.shadows = LightShadows.Soft; flash.shadowBias = 0.02f; flash.shadowNormalBias = 0.4f;
             fx = PostFX.Create(cam);
 
-            w = new World("World");
-            ch = Chapter.Create(n); ch.g = this; ch.w = w;
-            Random.InitState(LayoutStore.Seed(n));          // same build every time, so saved layout edits line up
-            ch.Build();
-            LayoutStore.Apply(w.root, n);                   // your hand edits from Tools > Thinking It > Layout
-            foreach (var f in ch.focusables) if (f.group) f.baseY = f.group.transform.localPosition.y;
-            Random.InitState(System.Environment.TickCount); // back to real randomness for the actual game
-            w.AutoObstacles();
-            itModel = new ItModel(w.root);
-
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = ch.FogDensity; RenderSettings.fogColor = ch.FogColor;
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat; RenderSettings.ambientLight = ch.Ambient;
-            RenderSettings.skybox = null; RenderSettings.reflectionIntensity = 0.3f;
+            var lv = BuildLevel(n); lv.visited = true; cur = lv;
+            ApplyLevel(lv);
             foreach (var l in FindObjectsByType<Light>()) if (l.type == LightType.Directional && l.transform.root != w.root) l.enabled = false;
 
             hud = Hud.Create();
@@ -121,10 +122,159 @@ namespace ThinkingIt
             dread = 0; eyes = true; reading = null;
             IT.state = "gone"; IT.cool = 6; itModel.SetVisible(false);
             ch.Begin();
+            if (body == null) body = new MaraBody(this);
             checkpoint = new Vector3(px, pz, yaw);
+            if (cur != null) cur.start = checkpoint;
             state = GState.Play;
             au.SetDrone(0.18f);
             LockCursor(true);
+        }
+
+
+        // ------------------------------------------------------------------ the whole map: every chapter stays alive, joined by doors
+        public Level cur;
+        readonly Dictionary<int, Level> levels = new Dictionary<int, Level>();
+        int travelTo, travelPhase; bool travelForward; float travelT, noEndUntil;
+        // where the player starts in each chapter, and where the door back sits (always the west wall of the first room)
+        static readonly float[] BACK_DOOR_Z = { 0, 0, 4f, 7.5f, 4f, 21f };
+
+        Level BuildLevel(int n)
+        {
+            var pw = w; var pc = ch;
+            var lw = new World("World" + n);
+            var lc = Chapter.Create(n); lc.g = this; lc.w = lw;
+            w = lw; ch = lc;
+            Random.InitState(LayoutStore.Seed(n));          // same build every time, so saved layout edits line up
+            lc.Build();
+            if (n != 1) LayoutStore.Apply(lw.root, n);      // your hand edits from Tools > Thinking It > Layout (chapter 1 is a random maze, nothing to line up)
+            foreach (var f in lc.focusables) if (f.group) f.baseY = f.group.transform.localPosition.y;
+            Random.InitState(System.Environment.TickCount); // back to real randomness for the actual game
+            lw.AutoObstacles();
+            var lv = new Level { n = n, ch = lc, w = lw, it = new ItModel(lw.root) };
+            levels[n] = lv;
+            if (n >= 3 && n <= 5) AddDoor(lv, new Vector3(2.0f + 0.07f, 0, BACK_DOOR_Z[n]), Mathf.PI / 2, "portal_back", "go back", false);
+            w = pw; ch = pc;
+            return lv;
+        }
+
+        void ApplyLevel(Level lv)
+        {
+            ch = lv.ch; w = lv.w; itModel = lv.it; chapterNum = lv.n;
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogDensity = ch.FogDensity * 0.5f; RenderSettings.fogColor = ch.FogColor;
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat; RenderSettings.ambientLight = ch.Ambient * World.AMB;
+            RenderSettings.skybox = null; RenderSettings.reflectionIntensity = 0.3f;
+            if (body != null) body.MoveTo(w);
+        }
+
+        // a door standing in the world: on a wall (the way back) or on its own (the way on, once you have been through)
+        void AddDoor(Level lv, Vector3 pos, float faceYaw, string kind, string label, bool block)
+        {
+            var lw = lv.w;
+            var frame = Mats.Std(MathX.Hex(0x1c1814), 0.8f, 0.1f); var leaf = Mats.Std(MathX.Hex(0x3a2e24), 0.7f, 0.05f);
+            var brass = Mats.Std(MathX.Hex(0xb89a48), 0.35f, 0.9f); var glow = Mats.Unlit(MathX.Hex(0xd8dce6));
+            var d = lw.Group("door " + kind);
+            lw.Box(0.1f, 2.3f, 0.14f, frame, d.transform).At(-0.55f, 1.15f, 0);
+            lw.Box(0.1f, 2.3f, 0.14f, frame, d.transform).At(0.55f, 1.15f, 0);
+            lw.Box(1.2f, 0.1f, 0.14f, frame, d.transform).At(0, 2.25f, 0);
+            lw.Box(1.0f, 2.2f, 0.05f, leaf, d.transform).At(0, 1.1f, 0.0f);
+            lw.Box(0.05f, 0.05f, 0.1f, brass, d.transform).At(0.38f, 1.05f, 0.04f);
+            lw.Box(1.0f, 0.02f, 0.02f, glow, d.transform).At(0, 0.012f, 0.04f);    // light seeping under the door
+            d.At(pos.x, 0, pos.z).RotY(faceYaw);
+            World.Tagged(d, "portal");
+            var it = new Interactable { kind = kind, tagName = "portal", id = null, pos = new Vector3(pos.x, 1.2f, pos.z), mesh = d, label = label, range = 2.8f, maxGaze = 3.2f };
+            lv.ch.interactables.Add(it);
+            if (block)
+            {
+                float nx = Mathf.Sin(faceYaw), nz = Mathf.Cos(faceYaw);
+                float hx = Mathf.Abs(nz) > 0.7f ? 0.62f : 0.12f, hz = Mathf.Abs(nz) > 0.7f ? 0.12f : 0.62f;
+                lw.AddObstacle(Rect.MinMaxRect(pos.x - hx, pos.z - hz, pos.x + hx, pos.z + hz));
+            }
+            if (kind == "portal_fwd") lv.fwdPortal = it;
+        }
+
+        public void Travel(int n, bool forward)
+        {
+            if (state == GState.Switch || n < 1 || n > 5 || cur == null) return;
+            if (forward)
+            {
+                cur.done = true;
+                if (!cur.hasExit) { cur.exit = new Vector3(px, pz, yaw); cur.hasExit = true; }
+                Settings.Progress = n;
+            }
+            travelTo = n; travelForward = forward; travelT = 0; travelPhase = 1;
+            state = GState.Switch;
+            CloseDoc(); au.SilenceLoops();
+        }
+
+        void UpdateTravel(float dt)
+        {
+            travelT += dt;
+            if (travelPhase == 1)
+            {
+                hud.SetTransition(Mathf.Clamp01(travelT / 0.9f), null, 0);
+                if (travelT >= 0.9f) SwapLevel();
+            }
+            else if (travelPhase == 2)
+            {
+                hud.SetTransition(1f - Mathf.Clamp01(travelT / 0.9f), null, 0);
+                if (travelT >= 0.9f) { travelPhase = 0; hud.SetTransition(0, null, 0); state = GState.Play; noEndUntil = time + 2f; }
+            }
+        }
+
+        void SwapLevel()
+        {
+            cur.w.root.gameObject.SetActive(false);
+            timers.Clear(); au.SilenceLoops();
+            reading = null; hud.HideDoc();
+            subtitles.Clear(); hints.Clear(); thought = null; near = null; focusing = null; gaze = null;
+            exposure = 0; hud.SetBlack(0);
+            Level to;
+            if (!levels.TryGetValue(travelTo, out to)) to = BuildLevel(travelTo);   // the heavy part, hidden behind the black
+            cur = to; ApplyLevel(to);
+            to.w.root.gameObject.SetActive(true);
+            au.SetSpace(ch.Space);
+            HideIt(8); hall = false; zone = ""; dread = Mathf.Min(dread, 0.1f); ItModel.Intensity = 0;
+            if (!to.visited)
+            {
+                // the first time: its title cards, then you wake up at its start
+                to.visited = true; state = GState.Intro; travelPhase = 0;
+                hud.HideGameplay();
+                hud.PlayCards(GameData.Cards[to.n], StartPlay);
+                hud.SetTransition(0, null, 0);
+                return;
+            }
+            Arrive(to, travelForward);
+            PlaceCamera();
+            travelPhase = 2; travelT = 0;
+        }
+
+        void Arrive(Level to, bool forward)
+        {
+            if (forward) { px = to.start.x; pz = to.start.y; yaw = to.start.z; }
+            else
+            {
+                // back through the way you left: standing just in front of where you went out, facing away
+                var e = to.exit; float fx = -Mathf.Sin(e.z), fz = -Mathf.Cos(e.z);
+                px = e.x; pz = e.y;
+                foreach (var o in new[] { 1.0f, 0.6f, 0.3f, 0f })
+                {
+                    float nx = e.x - fx * o, nz = e.y - fz * o;
+                    if (!w.Solid(nx, nz)) { px = nx; pz = nz; break; }
+                }
+                yaw = e.z + Mathf.PI;
+                // a chapter with no door of its own at that spot gets one standing there, so you can go on again
+                if ((to.n == 2 || to.n == 4) && to.fwdPortal == null)
+                    AddDoor(to, new Vector3(e.x + fx * 0.35f, 0, e.y + fz * 0.35f), e.z, "portal_fwd", "go through", true);
+            }
+            pitch = 0; checkpoint = new Vector3(px, pz, yaw);
+            noEndUntil = time + 2f;
+        }
+
+        bool BackDoorOpens()
+        {
+            Level prev;
+            return levels.TryGetValue(chapterNum - 1, out prev) && prev.done;
         }
 
         void LockCursor(bool on) { Cursor.lockState = on ? CursorLockMode.Locked : CursorLockMode.None; Cursor.visible = !on; }
@@ -155,7 +305,7 @@ namespace ThinkingIt
             float bob = eyes ? Mathf.Sin(walkPhase) * 0.035f : 0;
             cam.transform.position = new Vector3(px, World.EYE + camY + bob, pz);
             var f = new Vector3(-Mathf.Sin(yaw) * Mathf.Cos(pitch), Mathf.Sin(pitch), -Mathf.Cos(yaw) * Mathf.Cos(pitch));
-            cam.transform.rotation = Quaternion.LookRotation(f) * Quaternion.AngleAxis(Mathf.Sin(time * 0.7f) * dread * 0.035f * Mathf.Rad2Deg, Vector3.forward)
+            cam.transform.rotation = Quaternion.LookRotation(f) * Quaternion.AngleAxis(Mathf.Sin(time * 0.7f) * FxDread * 0.035f * Mathf.Rad2Deg, Vector3.forward)
                 * Quaternion.Euler(MathX.Jit(shake * 3), MathX.Jit(shake * 3), MathX.Jit(shake * 2));
         }
 
@@ -299,7 +449,12 @@ namespace ThinkingIt
             state = GState.Caught; caughtT = 0; timesCaught++;
             CloseDoc();
             // the jumpscare: you're spun round to face it, it's right in your face, screaming, then black
-            if (ch.CustomJumpscare) ch.Jumpscare(0, 0);
+            if (ch.CustomJumpscare)
+            {
+                // the chapter's own monster does the scare: the old IT must stay away
+                IT.state = "gone"; IT.cool = 30; itModel.SetVisible(false); au.Set(au.breath, 0);
+                ch.Jumpscare(0, 0);
+            }
             else
             {
                 float ddx = IT.x - px, ddz = IT.z - pz; if (MathX.Hypot(ddx, ddz) > 0.05f) yaw = Mathf.Atan2(-ddx, -ddz);
@@ -316,7 +471,7 @@ namespace ThinkingIt
         {
             px = checkpoint.x; pz = checkpoint.y; yaw = checkpoint.z; pitch = 0; eyes = true;
             dread = hall ? 0.15f : 0.12f; System.Array.Clear(w.heat, 0, w.heat.Length); thought = null;
-            HideIt(6);
+            HideIt(ch.CustomJumpscare ? 40 : 6);
             state = GState.Play;
             hud.SetCaught(false, 0, 0);
             ch.OnRespawn();
@@ -386,8 +541,25 @@ namespace ThinkingIt
         {
             if (reading != null) { if (hud.TerminalOpen && hud.TerminalNext()) return; CloseDoc(); return; }
             if (near == null) return;
-            if (near.kind == "doc") OpenDoc(near.id);
-            else ch.OnInteract(near);
+            if (body != null && body.Busy) return;
+            var it = near;
+            // Mara reaches out with her right hand; the thing happens when her fingers close on it
+            if (body != null) body.Reach(it.pos, it.kind == "doc" ? "doc" : it.kind, () => DoInteract(it));
+            else DoInteract(it);
+        }
+
+        void DoInteract(Interactable it)
+        {
+            if (state != GState.Play) return;
+            if (it.kind == "doc") OpenDoc(it.id);
+            else if (it.kind == "portal_back")
+            {
+                if (BackDoorOpens()) Travel(chapterNum - 1, false);
+                else { au.Bump(); Hint("It won't open. There's nothing on the other side yet.", 4); }
+            }
+            else if (it.kind == "doorA" && chapterNum == 2 && BackDoorOpens()) Travel(1, false);   // chapter 2's front door: it opens, now
+            else if (it.kind == "portal_fwd") Travel(chapterNum + 1, true);
+            else ch.OnInteract(it);
         }
 
         public void Materialize(Focusable f)
@@ -418,13 +590,15 @@ namespace ThinkingIt
 
         public void EndChapter()
         {
-            if (state == GState.End) return;
+            if (state == GState.End || state == GState.Switch || time < noEndUntil) return;
+            var e = ch.End();
+            // the chapters are one map: the exit leads straight on to the next one, no menu in between
+            if (e.hasNext && chapterNum < 5) { Travel(chapterNum + 1, true); return; }
             state = GState.End;
             LockCursor(false);
             au.SilenceLoops();
             HideIt(999);
             Settings.Progress = chapterNum + 1;
-            var e = ch.End();
             hud.HideGameplay(); hud.HideDoc();
             hud.ShowEnd(e.title, e.sub, e.stats, e.next, e.note,
                 e.hasNext ? (System.Action)(() => SceneFlow.Chapter(chapterNum + 1)) : null,
@@ -455,7 +629,7 @@ namespace ThinkingIt
                 if (OverlapScanner.Active) { OverlapScanner.Clear(); Hint("Overlap check cleared.", 2); }
                 else { var rep = OverlapScanner.Scan(w.root, chapterNum); Hint(rep.Split('\n')[0], 6); }
             }
-            if (kb != null && kb.f9Key.wasPressedThisFrame && (state == GState.Play || state == GState.Paused) && chapterNum < 5) { SceneFlow.Chapter(chapterNum + 1); return; }
+            if (kb != null && kb.f9Key.wasPressedThisFrame && (state == GState.Play || state == GState.Paused) && chapterNum < 5) { Travel(chapterNum + 1, true); return; }
 
             if (state == GState.Paused)
             {
@@ -503,6 +677,8 @@ namespace ThinkingIt
                 if (caughtT > 3.4f + JUMP) Respawn();
             }
 
+            if (state == GState.Switch) UpdateTravel(dt);
+
             if (state == GState.End && autoNext > 0)
             {
                 autoNext -= dt;
@@ -511,12 +687,13 @@ namespace ThinkingIt
             }
 
             shake = Mathf.Max(0, shake - dt * 2.2f);
-            ItModel.Intensity = dread;
+            ItModel.Intensity = FxDread;
             if (state != GState.End)
             {
                 PlaceCamera();
-                cam.fieldOfView = 72 - dread * 7 + Mathf.Sin(time * 1.3f) * dread * 2.5f + sprintK * 6f;
-                fx.Apply(dread, time, exposure);
+                if (body != null) body.Tick(dt);
+                cam.fieldOfView = 72 - FxDread * 7 + Mathf.Sin(time * 1.3f) * FxDread * 2.5f + sprintK * 6f;
+                fx.Apply(FxDread, time, exposure);
                 DrawHud();
             }
         }
@@ -652,23 +829,23 @@ namespace ThinkingIt
             ch.Tick(dt);
             if (state != GState.Play && state != GState.Cutscene) return;
 
-            float fl = hall && zone == ch.HallZone ? 0 : (dread > 0.6f && Random.value < dread * 0.08f ? 0.2f : ch.FlashBase);
+            float fl = hall && zone == ch.HallZone ? 0 : (FxDread > 0.6f && Random.value < FxDread * 0.08f ? 0.2f : ch.FlashBase);
             if (flashOverride >= 0) fl = flashOverride;
-            flash.intensity = fl * World.LK * 2.6f;
+            flash.intensity = fl * World.LK * 2.2f;
 
             UpdateIt(dt);
             if (state != GState.Play && state != GState.Cutscene) return;
 
             // heartbeat and whispers rise with dread
             heartT -= dt;
-            if (dread > 0.35f && heartT <= 0) { au.Heart(dread); heartT = 1.3f - dread * 0.75f; }
-            au.Set(au.whispers, Mathf.Max(0, dread - 0.3f) * 0.25f * (eyes ? 1 : 1.5f));
-            if (au.drone.lp) au.drone.lp.cutoffFrequency = 110 + dread * 220;
+            if (FxDread > 0.35f && heartT <= 0) { au.Heart(FxDread); heartT = 1.3f - FxDread * 0.75f; }
+            au.Set(au.whispers, Mathf.Max(0, FxDread - 0.3f) * 0.25f * (eyes ? 1 : 1.5f));
+            if (au.drone.lp) au.drone.lp.cutoffFrequency = 110 + FxDread * 220;
             // the building is never quite silent
             ambientT -= dt;
-            if (ambientT <= 0) { ambientT = 6 + Random.value * 12 - dread * 4; au.Ambient(px, pz); }
+            if (ambientT <= 0) { ambientT = 6 + Random.value * 12 - FxDread * 4; au.Ambient(px, pz); }
             thoughtT -= dt;
-            if (thoughtT <= 0) { thoughtT = 26 - dread * 18 + Random.value * 8; if ((dread > 0.1f || ch.Lit) && !cutscene) IntrusiveThought(); }
+            if (thoughtT <= 0) { thoughtT = 26 - FxDread * 18 + Random.value * 8; if ((FxDread > 0.1f || ch.Lit) && !cutscene) IntrusiveThought(); }
 
             // subtitles and hints
             if (subtitles.Count > 0) { subT += dt; if (subT > subtitles[0].dur) { subtitles.RemoveAt(0); subT = 0; } }
@@ -681,7 +858,7 @@ namespace ThinkingIt
         {
             bool play = state == GState.Play;
             hud.SetStamina(stamina, exhausted);
-            hud.SetEyes(!eyes && (play || state == GState.Cutscene), Mathf.Max(0, Mathf.Sin(time * (2 + dread * 3))) * 0.05f);
+            hud.SetEyes(!eyes && (play || state == GState.Cutscene), Mathf.Max(0, Mathf.Sin(time * (2 + FxDread * 3))) * 0.05f);
             string label = null;
             if (near != null) label = near.label ?? (near.kind == "doc" ? "read" : "open the door");
             hud.SetReticle(play && eyes && reading == null, focusing != null ? focusing.progress : -1, label);
@@ -692,7 +869,7 @@ namespace ThinkingIt
             if (thought != null)
             {
                 float a = Mathf.Min(1, thoughtLeft * 2) * (Random.value < 0.1f ? 0.3f : 1);
-                hud.SetThought(thought, a, thoughtOff + new Vector2(MathX.Jit(7 * dread), MathX.Jit(7 * dread)), (34 + dread * 20) * 1.8f);
+                hud.SetThought(thought, a, thoughtOff + new Vector2(MathX.Jit(7 * FxDread), MathX.Jit(7 * FxDread)), (34 + FxDread * 20) * 1.8f);
             }
             else hud.SetThought(null, 0, Vector2.zero, 10);
         }

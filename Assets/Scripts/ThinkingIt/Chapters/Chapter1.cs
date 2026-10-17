@@ -8,23 +8,29 @@ namespace ThinkingIt
     // A corridor that isn't there until you look at it, a door that isn't there either,
     // the power, Teo's recorder, and the dark observation hall you cross with your eyes closed.
     // ======================================================================
-    public class Chapter1 : Chapter
+    public partial class Chapter1 : Chapter
     {
         public override int Number => 1;
         public override bool Lit => power;
         public override string HallHint => "Too dark. Too much. Close your eyes and follow the phone.";
 
-        bool power, recorder, eyesTaught, pitHint, doorHint, exitHint, wardHint, isoHint;
+        readonly HashSet<string> tapes = new HashSet<string>();
+        static readonly string[] NOTES = { "brochure", "teoNote", "session41", "memo", "drawing", "w_chart", "w_nurse", "w_iso", "w_fuse" };
+        const int TAPES_TOTAL = 6;
+        bool hasKey;
+        int NotesRead() { int n = 0; foreach (var id in NOTES) if (g.read.Contains(id)) n++; return n; }
+        bool powerDread, power, recorder, eyesTaught, pitHint, doorHint, exitHint, wardHint, isoHint;
         int fuses; readonly List<GameObject> fuseSlots = new List<GameObject>();
         float powerT = -1;
         GameObject doorD;
         Interactable leverIt, recorderIt;
         GameObject leverHandle; Material recorderLed;
         DustCloud dust;
-        Focusable bridge, ghostDoor, isoDoor;
+        Focusable bridge, isoDoor;
 
         class Fluoro { public Light l; public List<Material> tubes = new List<Material>(); public Material beam; public float baseI, startAt, last; public bool flicker; public Vector3 pos; }
         class Emergency { public Light l; public Material m; public float phase; }
+        System.Action<int, int, float, float, bool> fluoroFn;
         readonly List<Fluoro> fluoros = new List<Fluoro>();
         readonly List<Emergency> emergencies = new List<Emergency>();
         readonly List<(Material m, float startAt)> screens = new List<(Material, float)>();
@@ -57,10 +63,33 @@ namespace ThinkingIt
             }
         }
 
+        // The institute's floor: rusty metal plates (Resources/ThinkingIt/Textures), or the old linoleum if the texture is missing.
+        public static Material FloorMat(Vector2 repeat, float rough = 0.55f)
+        {
+            var d = Resources.Load<Texture2D>("ThinkingIt/Textures/rusty_metal_diff");
+            if (d) return Mats.Std(Color.white, rough, 0.1f, d, repeat, Resources.Load<Texture2D>("ThinkingIt/Textures/rusty_metal_nor"), 0.8f);
+            var lino = TextureLibrary.Find(l => l.oldLinoleum);
+            return lino != null ? Mats.Std(Color.white, 0.45f, 0, lino.diff, repeat, lino.nor, 0.6f) : Mats.Std(MathX.Hex(0x8e8a7c), 0.45f, 0);
+        }
+
+        static Material plasterMat;
+        // The institute's walls: a photo of damaged plaster (Resources/ThinkingIt/Textures), or the painted wall if it is missing.
+        public static Material WallMat()
+        {
+            if (plasterMat) return plasterMat;
+            var d = Resources.Load<Texture2D>("ThinkingIt/Textures/damaged_plaster_diff");
+            if (!d) return Mats.Std(Color.white, 0.85f, 0, WallTex());
+            var n = Resources.Load<Texture2D>("ThinkingIt/Textures/damaged_plaster_nor");
+            plasterMat = Mats.Std(MathX.Hex(0xc8d0c0), 0.9f, 0, d, new Vector2(1, 1.6f), n, 0.8f);
+            return plasterMat;
+        }
+
         public static Texture WallTex() { var p = new Painter(256, 410); InstituteWall(p, 256, 410); return p.Make(); }
 
         static Texture TraceTex()
         {
+            var photo = Resources.Load<Texture2D>("ThinkingIt/Textures/plaster_bears");   // the scratched bears drawn on the plaster photo
+            if (photo) return photo;
             var g = new Painter(256, 410); InstituteWall(g, 256, 410);
             var ink = new Color(0.96f, 0.96f, 0.93f, 0.85f);
             for (int i = 0; i < 5; i++)   // a crude bear, scratched in over and over
@@ -162,54 +191,31 @@ namespace ThinkingIt
         // ---------------------------------------------------------------- build
         public override void Build()
         {
+            // The TEMPLATE: every room drawn once in its own corner of a small grid. Chapter1Maze.cs then shuffles the rooms
+            // into a random maze (Maze() at the end of this method). The contents of each room are placed by hand, so
+            // the same room always has the same layout wherever it ends up.
             w.Init(30, 21);
             w.Carve(1, 1, 8, 7);      // lobby
-            w.Carve(9, 3, 20, 5);     // main corridor
+            w.Carve(9, 3, 20, 5);     // collapsed corridor
             w.Carve(21, 1, 28, 8);    // offices
             w.Carve(21, 11, 28, 15);  // generator room
             w.Carve(11, 11, 18, 15);  // security office
-            w.Carve(2, 17, 27, 19);   // observation hall
+            w.Carve(2, 17, 13, 19);   // observation hall
             w.Carve(2, 9, 8, 13);     // patient ward
             w.Carve(2, 15, 4, 15);    // isolation room
-            w[4, 8] = '.';            // ward door from the lobby
             w[3, 14] = 'G';           // the isolation door that isn't there
             for (int y = 3; y <= 5; y++) for (int x = 13; x <= 15; x++) w[x, y] = 'P';
-            w[25, 9] = 'G'; w[25, 10] = 'G';
-            w[19, 13] = 'D'; w[20, 13] = 'D';
-            w[14, 16] = '.';
-            foreach (var p in new[] { (6, 18), (10, 17), (12, 19), (17, 18), (21, 17), (24, 19) }) w[p.Item1, p.Item2] = '#';
+            foreach (var p in new[] { (5, 17), (10, 19), (11, 18) }) w[p.Item1, p.Item2] = '#';
             w[1, 18] = 'X';
-            foreach (var p in new[] { (4, 0), (17, 2), (29, 4), (10, 13), (20, 16) }) w[p.Item1, p.Item2] = 'T';
-
-            var wallM = Mats.Std(Color.white, 0.85f, 0, WallTex());
-            w.CellBlocks("#", wallM, "wall");
-            w.CellBlocks("T", Mats.Std(Color.white, 0.85f, 0, TraceTex()), "trace", WALL_H, "traces");
-            doorD = w.CellBlocks("D", Mats.Std(Color.white, 0.45f, 0.4f, DoorTex()), "wall", WALL_H, "powered door");
-            w.CellBlocks("X", Mats.Std(Color.white, 0.45f, 0.4f, ExitDoorTex()), "exit", WALL_H, "stairwell door");
-
-            var lino = TextureLibrary.Find(l => l.oldLinoleum);
-            var floorM = lino != null ? Mats.Std(Color.white, 0.45f, 0, lino.diff, new Vector2(w.W * 0.75f, w.H * 0.75f), lino.nor, 0.6f)
-                                      : Mats.Std(Color.white, 0.45f, 0, CheckerFloor(), new Vector2(w.W / 2f, w.H / 2f));
-            var ceilSet = TextureLibrary.Find(l => l.ceilingInterior);
-            var ceilM = ceilSet != null ? Mats.Std(MathX.Hex(0xb8b4a8), 0.95f, 0, ceilSet.diff, new Vector2(w.W, w.H), ceilSet.nor, 0.5f)
-                                        : Mats.Std(Color.white, 0.95f, 0, CeilTex(), new Vector2(w.W, w.H));
-            w.FloorAndCeiling(floorM, ceilM);
 
             // The collapsed floor: a black hole, rubble, and planks that only half exist
             w.FloorPlane(3 * C, 3 * C, Mats.Unlit(Color.black), new Vector3(cx(14), 0.01f, cx(4)));
             for (int i = 0; i < 8; i++)
                 Bx(0.3f + Random.value * 0.4f, 0.15f, 0.3f + Random.value * 0.4f, Std(0x6a665e)).At(cx(12) + 0.8f + Random.value * 0.4f, 0.07f, cx(3) + Random.value * 5).RotY(Random.value * 3);
-            var br = Grp("bridge");
-            for (int i = 0; i < 9; i++) Bx(6.3f, 0.08f, 0.5f, null, br).At(cx(14), 0.04f, 3 * C + 0.4f + i * 0.65f).RotY(MathX.Jit(0.04f));
+            var br = Grp("bridge").At(cx(14), 0, cx(4));
+            for (int i = 0; i < 9; i++) Bx(6.3f, 0.08f, 0.5f, null, br).At(0, 0.04f, 3 * C + 0.4f + i * 0.65f - cx(4)).RotY(MathX.Jit(0.04f));
             var cells = new List<Vector2Int>(); for (int y = 3; y <= 5; y++) for (int x = 13; x <= 15; x++) cells.Add(new Vector2Int(x, y));
             bridge = AddFocusable("bridge", br, cells, new Vector3(cx(14), 0.3f, cx(4)), 2.2f, Std(0x6a5238));
-
-            // A doorway that isn't there
-            var gd = Grp("ghost door");
-            foreach (var b in new[] { (-0.85f, 1.3f, 0f, 0.15f, 2.6f, 2 * C), (0.85f, 1.3f, 0f, 0.15f, 2.6f, 2 * C), (0f, 2.65f, 0f, 1.85f, 0.15f, 2 * C) })
-                Bx(b.Item4, b.Item5, b.Item6, null, gd).At(b.Item1, b.Item2, b.Item3);
-            gd.At(cx(25), 0, cx(9) + C / 2);
-            ghostDoor = AddFocusable("door", gd, new[] { new Vector2Int(25, 9), new Vector2Int(25, 10) }, new Vector3(cx(25), 1.4f, cx(9) + C / 2), 2.6f, Std(0x6a6e64));
 
             // The isolation room door, another thing you have to look at to believe
             var idr = Grp("iso door");
@@ -221,9 +227,8 @@ namespace ThinkingIt
             // Furniture, documents, the lever, the recorder
             System.Func<int, int, float, GameObject> desk = (x, y, rot) =>
             {
-                var g = Grp("desk");
-                Bx(1.5f, 0.08f, 0.8f, Std(0x5a4a38), g).At(0, 0.76f, 0);
-                foreach (var l in new[] { (-0.65f, -0.32f), (0.65f, -0.32f), (-0.65f, 0.32f), (0.65f, 0.32f) }) Bx(0.06f, 0.76f, 0.06f, Std(0x333333), g).At(l.Item1, 0.38f, l.Item2);
+                var g = Grp("desk");   // two school desks side by side; their open ends face +Z, where the chair goes
+                foreach (var dx in new[] { -0.37f, 0.37f }) { var sd = BakedMesh.Spawn(w, "SchoolDesk", g.transform, 1.02f); if (sd != null) sd.At(dx, 0, 0).RotY(PI); }
                 g.At(cx(x), 0, cx(y)).RotY(rot);
                 Prop(g, x, y);
                 return g;
@@ -246,9 +251,7 @@ namespace ThinkingIt
                     pp.Text("> PRESS E_", Wt / 2f, 74, 10, Col(0x2fc860), TexText.Face.Mono, false, false, 1);
                 });
                 var orientTerm = Grp("terminal");
-                Bx(0.42f, 0.36f, 0.4f, Std(0xc8c2ae, 0.6f), orientTerm).At(0, 0.18f, 0);
-                Pl(0.32f, 0.25f, Mats.Unlit(Color.white, termScr), orientTerm).At(0, 0.19f, 0.205f);
-                Bx(0.42f, 0.03f, 0.14f, Std(0xc8c2ae, 0.6f), orientTerm).At(0, 0.015f, 0.33f);
+                TvModel(orientTerm, Mats.Unlit(Color.white, termScr));
                 orientTerm.At(cx(4) + 0.5f, 0.8f, cx(2) - 0.12f).RotY(-0.15f);
                 World.Tagged(orientTerm, "doc", "tutorial");
                 AddInteract("doc", "doc", "tutorial", orientTerm.transform.position + new Vector3(0, 0.2f, 0), orientTerm, "use the terminal");
@@ -258,8 +261,16 @@ namespace ThinkingIt
             desk(23, 2, 0); doc(23, 2, "session41", paper);
             desk(27, 6, 0.4f); doc(27, 6, "memo", paper);
             desk(16, 12, 0); doc(16, 12, "drawing", DrawingTex());
-            desk(22, 5, -0.3f);
-            desk(13, 11, 0);
+            {   // an old television on the maintenance desk, replacing the CRT (faces the chair)
+                var d = desk(22, 5, -0.3f);
+                var tvm = BakedMesh.Spawn(w, "Television", d.transform);
+                if (tvm != null) tvm.At(-0.28f, 0.8f, -0.12f).RotY(0.1f);   // left of the fuse, which sits on the right of this desk
+            }
+            {   // a megaphone left on a desk, mouth pointing at the chair
+                var d = desk(13, 11, 0);
+                var mp = BakedMesh.Spawn(w, "Megaphone", d.transform);
+                if (mp != null) mp.At(-0.35f, 0.8f, 0.02f).RotY(-PI / 2 + 0.4f);
+            }
             desk(7, 9, 0); doc(7, 9, "w_chart", paper);
             desk(5, 13, PI); doc(5, 13, "w_nurse", paper);
             { var p = Pl(0.36f, 0.46f, Mats.Unlit(MathX.Hex(0xb8b2a4), paper)); p.At(cx(3), 0.01f, cx(15) - 0.4f).Rot(-PI / 2, 0, 0.4f); World.Tagged(p, "doc", "w_iso"); AddInteract("doc", "doc", "w_iso", p.transform.position, p, "read"); }
@@ -275,18 +286,37 @@ namespace ThinkingIt
                 World.Tagged(f, "fuse", id);
                 var it = AddInteract("fuse", "fuse", id, pos, f, "take the fuse"); it.mesh = f;
             };
-            fuse("f1", new Vector3(9 * C - 0.3f, 0.66f, cx(12) + 0.85f));   // ward: on a bedside cabinet
-            fuse("f2", new Vector3(cx(22) + 0.3f, 0.84f, cx(5)));    // offices: on the maintenance desk
-            fuse("f3", new Vector3(cx(2) + 0.3f, 0.04f, cx(15)));    // isolation: on the floor, in the corner
+            // (no fuses any more)
+            // (no fuses any more)
+            // (no fuses any more)
 
             // the breaker lever
             var lever = Grp("lever");
-            Bx(0.9f, 1.3f, 0.3f, Std(0x4a5048), lever).At(0, 1.2f, 0);
-            leverHandle = Bx(0.08f, 0.5f, 0.08f, Std(0xa02020), lever).At(0, 1.35f, 0.2f).Rot(0.6f, 0, 0);
-            for (int i = 0; i < 3; i++)   // three empty fuse sockets beside the lever
+            // the breaker cabinet: a real low-poly utility box (converted from Blender), or the old plain box if the model is missing
+            var cabinet = BakedMesh.Load("UtilityBox");
+            float sideX = -0.45f, midZ = 0f;               // the cabinet's left side face (it looks into the room), and the middle of its depth
+            if (cabinet != null)
             {
-                Bx(0.14f, 0.1f, 0.06f, Std(0x1a1a1a), lever).At(-0.28f + i * 0.28f, 1.75f, 0.17f);
-                var fs = Cy(0.035f, 0.035f, 0.16f, 10, Mats.Std(MathX.Hex(0xd8d0b0), 0.4f, 0, null, null, null, 1, MathX.Hex(0xffb040), 0.6f, false, false), lever).At(-0.28f + i * 0.28f, 1.75f, 0.21f).Rot(0, 0, PI / 2);
+                const float K = 1.5f;                       // model is 0.92 x 1.12 x 0.43 m; scale it up to a big floor cabinet
+                var boxMat = Mats.Std(Color.white, 0.65f, 0.12f, BakedMesh.Texture("UtilityBox"));
+                var cab = w.MeshObj(cabinet, boxMat, lever.transform, "utility box");
+                cab.transform.localScale = new Vector3(K, K, K);
+                midZ = -0.15f + cabinet.bounds.extents.z * K;
+                cab.At(0, 0, midZ);                         // back flush against the wall, standing on the floor
+                sideX = -cabinet.bounds.extents.x * K;
+            }
+            else Bx(0.9f, 1.3f, 0.3f, Std(0x4a5048), lever).At(0, 1.2f, 0);
+
+            // the lever is bolted to the side of the cabinet: a plate, a pivot and a long red handle that swings down along the side
+            float lz = midZ - 0.07f;
+            Bx(0.03f, 0.82f, 0.5f, Std(0x2a2e2a, 0.6f, 0.3f), lever).At(sideX - 0.012f, 1.0f, lz);
+            Cy(0.05f, 0.05f, 0.05f, 14, Std(0x8a8a84, 0.4f, 0.6f), lever).At(sideX - 0.04f, 0.8f, lz).Rot(0, 0, PI / 2);
+            leverHandle = Grp("lever handle", lever).At(sideX - 0.065f, 0.8f, lz).Rot(0.6f, 0, 0);
+            Bx(0.04f, 0.52f, 0.05f, Std(0xa02020, 0.5f), leverHandle).At(0, 0.26f, 0);
+            Sp(0.06f, 12, 8, Std(0xa02020, 0.45f), leverHandle).At(0, 0.55f, 0);
+            for (int i = 0; i < 3; i++)   // three small lamps above the lever light up as the fuses go in (hidden until then)
+            {
+                var fs = Cy(0.03f, 0.03f, 0.06f, 10, Mats.Std(MathX.Hex(0xd8d0b0), 0.4f, 0, null, null, null, 1, MathX.Hex(0xffb040), 0.6f, false, false), lever).At(sideX - 0.045f, 1.3f, lz - 0.15f + i * 0.15f).Rot(0, 0, PI / 2);
                 fs.SetActive(false); fuseSlots.Add(fs);
             }
             lever.At(29 * C - 0.16f, 0, cx(13)).RotY(-PI / 2);
@@ -300,11 +330,55 @@ namespace ThinkingIt
             World.Tagged(rec, "recorder");
             recorderIt = AddInteract("recorder", "recorder", null, rec.transform.position, rec, "play the recorder");
 
+            // Four more tapes lie around the institute (Teo's recorder is the fifth), each in a room with a hand-placed spot
+            var tapeLabel = Std(0xd8d2bc, 0.8f);
+            System.Action<float, float, float, string> tapeAt = (x, y, z, id) =>
+            {
+                var t = Grp("tape");
+                Bx(0.11f, 0.018f, 0.07f, Std(0x1a1a1a, 0.4f), t);
+                Pl(0.08f, 0.04f, tapeLabel, t).At(0, 0.011f, 0).Rot(-PI / 2, 0, 0);
+                Sp(0.015f, 6, 6, Mats.Unlit(MathX.Hex(0xfff0d0)), t).At(0.04f, 0.02f, 0);
+                t.At(x, y, z).RotY(0.7f);
+                World.Tagged(t, "tape", id);
+                AddInteract("tape", "tape", id, t.transform.position, t, "play the tape");
+            };
+            tapeAt(cx(5) - 0.4f, 0.83f, cx(13), "c1a");                 // wards: on the night nurse's desk
+            tapeAt(cx(27) - 0.37f, 0.83f, cx(6) + 0.16f, "c1b");        // offices: on the memo desk
+            tapeAt(cx(16) + 0.4f, 0.83f, cx(12), "c1c");                // security: on the desk
+            tapeAt(cx(26) + 0.3f, 0.03f, cx(13) - 0.6f, "c1d");         // generator room: on the floor
+            tapeAt(cx(11) + 0.4f, 0.03f, cx(5) - 0.4f, "c1e");          // collapsed corridor: on the floor
+
+
+            // the maintenance worker: dead on the generator room floor, the stairwell key in his pocket
+            {
+                var corpse = Grp("maintenance worker");
+                var cover = Std(0x34465c, 0.95f); var skin = Std(0xb9a99a, 0.85f); var boot = Std(0x1c1a18, 0.7f); var blood = Std(0x2a0606, 0.35f);
+                var pool = Cy(0.62f, 0.62f, 0.004f, 18, blood, corpse).At(0.05f, 0.003f, -0.1f);
+                Bx(0.42f, 0.2f, 0.62f, cover, corpse).At(0, 0.14f, 0);                         // torso (face down)
+                Bx(0.13f, 0.12f, 0.8f, cover, corpse).At(-0.12f, 0.08f, -0.7f).RotY(0.08f);    // legs
+                Bx(0.13f, 0.12f, 0.8f, cover, corpse).At(0.13f, 0.08f, -0.68f).RotY(-0.1f);
+                Bx(0.14f, 0.1f, 0.26f, boot, corpse).At(-0.14f, 0.06f, -1.16f);
+                Bx(0.14f, 0.1f, 0.26f, boot, corpse).At(0.16f, 0.06f, -1.14f);
+                Sp(0.115f, 12, 10, skin, corpse).At(0.02f, 0.12f, 0.46f);                      // head
+                Bx(0.11f, 0.1f, 0.62f, cover, corpse).At(-0.3f, 0.1f, 0.2f).RotY(0.35f);       // arms, one flung out
+                Bx(0.11f, 0.1f, 0.6f, cover, corpse).At(0.3f, 0.1f, 0.35f).RotY(-0.5f);
+                Bx(0.2f, 0.07f, 0.05f, Std(0xc08020, 0.5f), corpse).At(0.12f, 0.255f, -0.05f); // tool-belt pouch
+                var keyMat = Mats.Std(MathX.Hex(0xd8b040), 0.25f, 0.9f);
+                var key = Grp("key", corpse).At(0.12f, 0.3f, 0.0f);
+                Cy(0.016f, 0.016f, 0.01f, 10, keyMat, key).At(0, 0, 0).Rot(PI / 2, 0, 0);
+                Bx(0.012f, 0.012f, 0.08f, keyMat, key).At(0, 0, 0.05f);
+                corpse.At(cx(24) - 0.2f, 0, cx(14) - 0.2f).RotY(0.5f);
+                World.Tagged(corpse, "prop");
+                var ci = AddInteract("body", "body", null, new Vector3(cx(24) - 0.2f, 0.35f, cx(14) - 0.2f), corpse, "search the body");
+                ci.range = 2.4f;
+            }
+
             // the stairwell door
             AddInteract("exit", "exit", null, new Vector3(cx(1) + 0.6f, 1.2f, cx(18)), null, "open the door");
 
             Decorate();
             Lights();
+            Maze();
         }
 
         void Decorate()
@@ -313,7 +387,6 @@ namespace ThinkingIt
             var plastic = Std(0x5a6a70, 0.7f); var cream = Std(0xd8d2bc, 0.6f); var rubber = Std(0x1a1a1a, 0.9f);
             System.Func<GameObject, int, int, GameObject> add = (o, sx, sy) => Prop(o, sx, sy);
 
-            w.Skirting(rubber, "#TX");
 
             // pipes and ducts along the corridor ceiling
             foreach (var p in new[] { (3 * C + 0.35f, 0.06f, 0x6a5a4a), (3 * C + 0.6f, 0.04f, 0x7a7e80), (6 * C - 0.4f, 0.14f, 0x8a8e90) })
@@ -326,7 +399,7 @@ namespace ThinkingIt
                 Bx(0.6f, 0.03f, 0.6f, darkMetal).At(x, WALL_H - 0.015f, z);
                 for (int i = 0; i < 6; i++) Bx(0.5f, 0.02f, 0.03f, rubber).At(x, WALL_H - 0.035f, z - 0.22f + i * 0.09f);
             };
-            vent(cx(3), cx(2)); vent(cx(24), cx(7)); vent(cx(16), cx(14)); vent(cx(7), cx(18)); vent(cx(20), cx(18));
+            vent(cx(3), cx(2)); vent(cx(24), cx(7)); vent(cx(16), cx(14)); vent(cx(7), cx(18)); vent(cx(11), cx(18));
 
             // scattered papers on the floor everywhere
             var paperM = Mats.Std(MathX.Hex(0xe0d8c4), 0.95f, 0, null, null, null, 1, null, 1, true);
@@ -343,12 +416,7 @@ namespace ThinkingIt
             // ---- Lobby: reception, waiting chairs, a wheelchair, a notice board ----
             System.Func<float, float, float, GameObject> waitingChair = (x, z, rot) =>
             {
-                var g = Grp("chair");
-                Bx(0.48f, 0.06f, 0.46f, plastic, g).At(0, 0.44f, 0);
-                Bx(0.48f, 0.42f, 0.05f, plastic, g).At(0, 0.72f, -0.21f).Rot(-0.1f, 0, 0);
-                foreach (var sx in new[] { -0.2f, 0.2f }) Bx(0.03f, 0.44f, 0.4f, metal, g).At(sx, 0.22f, 0);
-                g.At(x, 0, z).RotY(rot);
-                return g;
+                return ChairModel(x, z, rot);
             };
             for (int i = 0; i < 5; i++) { var c = waitingChair(cx(2) + i * 0.55f - 0.3f, cx(7) + 0.5f, PI); if (i % 2 == 0) add(c, 2 + (i >> 1), 7); else add(c, -1, -1); }
             add(waitingChair(cx(6) + 0.4f, cx(6), PI + 1.9f), -1, -1);   // knocked sideways
@@ -405,24 +473,19 @@ namespace ThinkingIt
             add(cabinet(cx(21) - 0.5f, cx(8) + 0.4f, PI / 2, 1), -1, -1);
             System.Func<float, float, float, bool, GameObject> officeChair = (x, z, rot, tipped) =>
             {
-                var g = Grp("office chair");
-                Bx(0.48f, 0.08f, 0.46f, Std(0x2a2a30, 0.8f), g).At(0, 0.48f, 0);
-                Bx(0.46f, 0.5f, 0.06f, Std(0x2a2a30, 0.8f), g).At(0, 0.8f, -0.22f);
-                Cy(0.03f, 0.03f, 0.44f, 8, metal, g).At(0, 0.24f, 0);
-                for (int i = 0; i < 5; i++) { float a = i / 5f * PI * 2; Bx(0.03f, 0.03f, 0.3f, metal, g).At(Mathf.Sin(a) * 0.15f, 0.015f, Mathf.Cos(a) * 0.15f).RotY(a); }
-                g.At(x, tipped ? 0.34f : 0, z).Rot(tipped ? PI / 2 : 0, rot, 0); return g;
+                var g = ChairModel(x, z, 0, tipped ? 0.34f : 0);
+                g.transform.localRotation = MathX.Euler3(tipped ? PI / 2 : 0, rot, 0); return g;
             };
             add(officeChair(cx(23), cx(2) + 0.85f, PI + 0.3f, false), -1, -1); add(officeChair(cx(22) + 0.4f, cx(5) + 0.9f, 2.6f, true), -1, -1);
             add(officeChair(cx(27) - 0.2f, cx(6) + 0.9f, PI - 0.2f, false), -1, -1); add(officeChair(cx(13), cx(11) + 0.85f, PI + 0.4f, false), -1, -1);
             System.Func<float, float, float, GameObject> crt = (x, z, rot) =>
             {
                 var g = Grp("crt");
-                Bx(0.42f, 0.36f, 0.4f, Std(0xc8c2ae, 0.6f), g).At(0, 0.18f, 0);
-                Pl(0.32f, 0.25f, Mats.Std(MathX.Hex(0x101414), 0.1f, 0.3f), g).At(0, 0.19f, 0.205f);
-                Bx(0.42f, 0.03f, 0.14f, Std(0xc8c2ae, 0.6f), g).At(0, 0.015f, 0.33f);
+                TvModel(g, null);
                 g.At(x, 0.8f, z).RotY(rot); return g;
             };
-            crt(cx(23) + 0.5f, cx(2) - 0.2f, 0.2f); crt(cx(22), cx(5) - 0.15f, -0.3f);
+            crt(cx(23) + 0.5f, cx(2) - 0.2f, 0.2f);
+            // (the maintenance desk's old CRT was replaced by the Television model)
             var wb = Grp("whiteboard");
             Bx(1.8f, 1.1f, 0.04f, Mats.Std(MathX.Hex(0x8a8e90), 0.4f, 0.5f), wb);
             Pl(1.7f, 1.0f, Mats.Std(Color.white, 0.3f, 0, WhiteboardTex()), wb).At(0, 0, 0.025f);
@@ -469,13 +532,13 @@ namespace ThinkingIt
             Bx(0.5f, 0.3f, 0.04f, Std(0x6a4a2a, 0.8f)).At(cx(18) + 0.95f, 1.6f, cx(12)).RotY(-PI / 2);
 
             // ---- Observation hall: rows of chairs facing a dark one-way window ----
-            Pl(10, 1.4f, Mats.Std(MathX.Hex(0x0a0e12), 0.05f, 0.9f)).At(cx(20), 1.7f, 17 * C + 0.03f);
-            Bx(10.2f, 0.08f, 0.06f, darkMetal).At(cx(20), 2.44f, 17 * C + 0.03f);
-            Bx(10.2f, 0.08f, 0.06f, darkMetal).At(cx(20), 0.96f, 17 * C + 0.03f);
+            Pl(10, 1.4f, Mats.Std(MathX.Hex(0x0a0e12), 0.05f, 0.9f)).At(cx(8), 1.7f, 17 * C + 0.03f);
+            Bx(10.2f, 0.08f, 0.06f, darkMetal).At(cx(8), 2.44f, 17 * C + 0.03f);
+            Bx(10.2f, 0.08f, 0.06f, darkMetal).At(cx(8), 0.96f, 17 * C + 0.03f);
             for (int r = 0; r < 2; r++) for (int i = 0; i < 6; i++)
                 {
                     if (Random.value < 0.15f) continue;
-                    waitingChair(cx(17) + i * 1.0f, cx(19) - r * 1.1f + 0.4f, PI + MathX.Jit(0.3f));
+                    waitingChair(cx(6) + i * 1.0f, cx(19) - r * 1.1f + 0.4f, PI + MathX.Jit(0.3f));
                 }
 
             // ---- Patient ward: six iron beds, curtain rails, an IV stand ----
@@ -525,13 +588,13 @@ namespace ThinkingIt
             cot.At(cx(4) - 0.2f, 0, cx(15) + 0.4f); Prop(cot);
             Pl(1.4f, 1.4f, Mats.Std(Color.white, 0.85f, 0, TraceTex(), null, null, 1, null, 1, true)).At(cx(3), 1.4f, 16 * C - 0.06f).RotY(PI);
 
-            dust = new DustCloud(w.root, DustCloud.OverCells(w, 350), MathX.Hex(0xdfe6ee), 0.03f, 0.5f);
         }
 
         void Lights()
         {
             // Fluorescent tubes: dead until the power comes back, then they stutter to life one by one.
-            System.Action<int, int, float, float, bool> fluoro = (x, y, intensity, dist, shadow) =>
+            System.Action<int, int, float, float, bool> fluoro = null;
+            fluoro = fluoroFn = (x, y, intensity, dist, shadow) =>
             {
                 Bx(1.5f, 0.08f, 0.4f, Mats.Std(MathX.Hex(0x4a4c48), 0.6f, 0.4f)).At(cx(x), WALL_H - 0.04f, cx(y));
                 var F = new Fluoro { baseI = intensity, startAt = 0.3f + Random.value * 2.4f, flicker = Random.value < 0.35f };
@@ -584,9 +647,8 @@ namespace ThinkingIt
             for (int i = 0; i < 3; i++)
             {
                 var mon = Grp("monitor");
-                Bx(0.5f, 0.4f, 0.4f, Std(0x2a2c2a, 0.6f), mon);
                 var sm = Mats.Std(MathX.Hex(0x0a120e), 0.2f, 0, null, null, null, 1, MathX.Hex(0x6affc0), 0, false, false);
-                Pl(0.4f, 0.3f, sm, mon).At(0, 0, 0.205f);
+                var mtv = TvModel(mon, sm); mtv.At(0, -0.2f, 0); mtv.transform.localScale = Vector3.one * 0.85f;
                 mon.At(cx(13) - 0.55f + i * 0.55f, 1.0f, cx(11) + 0.05f).RotY((i - 1) * -0.25f);
                 screens.Add((sm, 1.5f + i * 0.4f));
             }
@@ -595,29 +657,35 @@ namespace ThinkingIt
         // ---------------------------------------------------------------- play
         public override void Begin()
         {
-            g.px = cx(2); g.pz = cx(4); g.yaw = -PI / 2; g.pitch = 0;
+            g.px = cx(2 + roomLobby.dx); g.pz = cx(4 + roomLobby.dy); g.yaw = -PI / 2; g.pitch = 0;
+            him = new Him(g, w); him.Reset(30f);
+            // every door is already open and the power is on: nothing to unlock, only notes and tapes to find
+            foreach (var f in focusables) OpenFocus(f);
+            foreach (var dc in dCells) w[dc.x, dc.y] = '.';
+            if (doorD) doorD.SetActive(false);
+            foreach (var fs in fuseSlots) fs.SetActive(true);
+            leverIt.used = true; leverHandle.transform.localRotation = MathX.Euler3(-0.6f, 0, 0);
+            power = true; powerT = 0; pitHint = doorHint = isoHint = true;
             g.Hint("WASD move  ·  mouse look  ·  E interact  ·  SPACE eyes  ·  SHIFT run   —   a terminal on the reception desk explains the rest", 10);
         }
 
-        public override string Zone(float wx, float wz)
+        void OpenFocus(Focusable f)
         {
-            int x = Mathf.FloorToInt(wx / C), y = Mathf.FloorToInt(wz / C);
-            if (y >= 17) return "hall";
-            if (x <= 8 && y >= 9) return "wards";
-            if (x >= 11 && x <= 18 && y >= 11 && y <= 15) return "security";
-            if (x >= 21 && y >= 11) return "generator";
-            if (x >= 21) return "offices";
-            if (x >= 9) return "corridor";
-            return "lobby";
+            f.done = true;
+            foreach (var c in f.cells) w[c.x, c.y] = f.cellAfter;
+            for (int i = 0; i < f.parts.Count; i++) { f.parts[i].sharedMaterial = f.real; f.parts[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On; }
+            foreach (var e in f.edges) e.SetActive(false);
         }
+
+        public override string Zone(float wx, float wz) => ZoneAt(wx, wz);
 
         public override void Tick(float dt)
         {
             float time = g.time; var au = g.au;
-            if (g.zone == "corridor" && g.px > cx(10) && !pitHint) { pitHint = true; g.Hint("The floor just... isn't there. But Teo's note said to look at it.", 6); }
-            if (g.zone == "offices" && !doorHint && !ghostDoor.done) { doorHint = true; g.Hint("There should be a door here. You're almost sure there was.", 5); }
+            if (g.zone == "corridor" && g.px > cx(10 + roomCorr.dx) && !pitHint) { pitHint = true; g.Hint("The floor just... isn't there. But Teo's note said to look at it.", 6); }
+            if (!doorHint) foreach (var gf in ghostDoors) if (!gf.done && MathX.Hypot(gf.center.x - g.px, gf.center.z - g.pz) < 5.5f) { doorHint = true; g.Hint("There should be a door here. You're almost sure there was.", 5); break; }
             if (g.zone == "wards" && !wardHint) { wardHint = true; g.Hint("The patient ward. Somebody left the beds made.", 5); }
-            if (g.zone == "wards" && g.pz > cx(13) && !isoHint && !isoDoor.done) { isoHint = true; g.Hint("The chart says there's an isolation room. There's only wall here.", 5); }
+            if (g.zone == "wards" && g.pz > cx(13 + roomWards.dy) && !isoHint && !isoDoor.done) { isoHint = true; g.Hint("The chart says there's an isolation room. There's only wall here.", 5); }
             if (recorder && !eyesTaught && !g.HasSubtitles) { eyesTaught = true; g.Hint("Hold SPACE to close your eyes. It can't feed on you if you aren't looking.", 7); }
 
             dust.Update(time);
@@ -654,64 +722,66 @@ namespace ThinkingIt
                 if (doorD && powerT < 3)
                 {
                     doorD.transform.localPosition = new Vector3(0, Mathf.Min(WALL_H + 0.1f, powerT * 1.3f), 0);
-                    if (powerT > 1.5f) { w[19, 13] = '.'; w[20, 13] = '.'; }
+                    if (powerT > 1.5f) foreach (var dc in dCells) w[dc.x, dc.y] = '.';
                 }
-                RenderSettings.ambientLight = new Color(0.42f, 0.45f, 0.5f) * 0.1f;
-                if (powerT > 2 && !g.firstSight && g.IT.state == "gone") { g.dread = Mathf.Max(g.dread, 0.36f); g.IT.cool = 0; }
+                RenderSettings.ambientLight = new Color(0.42f, 0.45f, 0.5f) * 0.1f * World.AMB;
+                if (powerT > 2 && !powerDread) { powerDread = true; g.dread = Mathf.Max(g.dread, 0.36f); }
             }
 
             // the phone ringing past the hall: something to follow with your eyes closed
             float ring = g.hall ? ((time % 3) < 1.2f && (time % 0.4f) < 0.2f ? 0.05f : 0) : 0;
             au.Set(au.phone, ring * (g.eyes ? 1 : 1.6f));
-            au.SetPos(au.phone, new Vector3(cx(1) + 0.8f, 1.2f, cx(18)));
+            au.SetPos(au.phone, phonePos);
 
-            if (g.hall && MathX.Hypot(g.px - cx(1), g.pz - cx(18)) < 2.2f && g.near == null && !exitHint) { exitHint = true; g.Hint("The stairwell door. Open your eyes and press E.", 5); }
+            if (g.hall && MathX.Hypot(g.px - exitPos.x, g.pz - exitPos.z) < 3f && g.near == null && !exitHint) { exitHint = true; g.Hint("The stairwell door. Open your eyes and press E.", 5); }
         }
 
         public override void OnInteract(Interactable it)
         {
             var au = g.au;
-            if (it.kind == "fuse")
+            if (it.kind == "tape")
             {
-                it.used = true; if (it.mesh) it.mesh.SetActive(false); fuses++; au.Click();
-                g.Hint(fuses < 3 ? $"A fuse. {fuses} of 3." : "That's all three. The breaker is in the generator room.", 4);
-            }
-            else if (it.kind == "lever" && !power && fuses < 3)
-            {
-                au.Click();
-                for (int i = 0; i < 3; i++) fuseSlots[i].SetActive(i < fuses);
-                g.Hint(fuses == 0 ? "The breaker's dead. Three fuse sockets, all empty." : $"The breaker's dead. {3 - fuses} fuse{(3 - fuses == 1 ? "" : "s")} still missing.", 5);
-            }
-            else if (it.kind == "lever" && !power)
-            {
-                foreach (var fs in fuseSlots) fs.SetActive(true);
-                it.used = true; leverHandle.transform.localRotation = MathX.Euler3(-0.6f, 0, 0); au.Lever();
-                power = true; powerT = 0; au.PowerUp();
-                g.Hint("Something hums awake deep in the building.", 4);
+                it.used = true; if (it.mesh) it.mesh.SetActive(false);
+                var t = GameData.Tapes[it.id];
+                tapes.Add(it.id); au.Tape(); g.Hint($"{t.title}   ({tapes.Count}/{TAPES_TOTAL} tapes)", 5); g.Say(t.lines);
             }
             else if (it.kind == "recorder" && !recorder)
             {
-                it.used = true; recorderLed.SetColor("_BaseColor", MathX.Hex(0x20ff40)); recorder = true;
+                it.used = true; recorderLed.SetColor("_BaseColor", MathX.Hex(0x20ff40)); recorder = true; tapes.Add("recorder");
                 g.Say(GameData.TeoRecorder);
             }
-            else if (it.kind == "exit") g.EndChapter();
+            else if (it.kind == "body")
+            {
+                if (hasKey) return;
+                hasKey = true; it.used = true; au.Tape();
+                g.Hint("You took the stairwell key.", 5);
+                g.Say(new[] { new Line("MARA", "A maintenance badge... half his face is gone. The stairwell key is still in his pocket.", 5.5f) });
+            }
+            else if (it.kind == "exit")
+            {
+                if (!hasKey) { au.Bump(); g.Hint("Locked. The maintenance worker must have had the key.", 5); }
+                else g.EndChapter();
+            }
         }
 
         public override string Objective()
         {
-            if (!bridge.done) return "Find a way deeper into the institute.";
-            if (!power && fuses < 3) return $"Find the three missing fuses for the breaker ({fuses}/3).";
-            if (!power) return "Restore the power.";
-            if (!recorder) return "Find out what happened to Teo.";
-            return "Get through the observation hall. Find the stairs.";
+            if (!hasKey) return "Find the stairwell key. The dead maintenance worker had it. HIM is looking for you.";
+            return "You have the key. Find the observation hall, get through it, find the stairs.";
         }
+
+        public override bool CustomIt(float dt) { if (him != null) him.Update(dt); return true; }
+        public override bool CustomItActive => true;
+        public override bool CustomJumpscare => true;
+        public override void Jumpscare(float t, float dt) { if (him != null) him.Scare(t, dt); }
+        public override void OnRespawn() { if (him != null) him.Reset(14f); }
 
         public override EndInfo End()
         {
             return new EndInfo
             {
                 title = "END OF CHAPTER ONE", sub = "Arrival", hasNext = true, next = "Chapter Two: The Waiting Room",
-                stats = $"forbidden documents read: {g.forbiddenRead} / 5\ntimes you looked at it: {g.timesSeen}\ntimes it reached you: {g.timesCaught}"
+                stats = $"tapes found: {tapes.Count} / {TAPES_TOTAL}\nforbidden documents read: {g.forbiddenRead} / 5\ntimes HIM reached you: {g.timesCaught}"
             };
         }
     }

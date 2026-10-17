@@ -99,11 +99,11 @@ namespace ThinkingIt
             w.Carve(16, 15, 16, 18); w[16, 14] = '.';      // trial room C
             center = new Vector3(cx(21), 0, cx(10) + 1);
 
-            var inst = Mats.Std(Color.white, 0.85f, 0, Chapter1.WallTex());
+            var inst = Chapter1.WallMat();
             var tiles = Mats.Std(Color.white, 0.35f, 0, Tiles());
             w.WallFaces("#", ".PVD", (nx, ny) => ZoneCell(nx, ny) == "chamber" ? tiles : inst);
             var lino = TextureLibrary.Find(l => l.oldLinoleum);
-            var floorM = lino != null ? Mats.Std(Color.white, 0.4f, 0, lino.diff, new Vector2(w.W * 0.75f, w.H * 0.75f), lino.nor, 0.6f) : Std(0x8e8a7c, 0.45f);
+            var floorM = Chapter1.FloorMat(new Vector2(w.W * 0.75f, w.H * 0.75f), 0.5f);
             var ceilSet = TextureLibrary.Find(l => l.ceilingInterior);
             var ceilM = ceilSet != null ? Mats.Std(MathX.Hex(0xa8a49a), 0.95f, 0, ceilSet.diff, new Vector2(w.W, w.H), ceilSet.nor, 0.5f) : Std(0xa8a49a, 0.95f);
             w.FloorAndCeiling(floorM, ceilM);
@@ -131,9 +131,8 @@ namespace ThinkingIt
 
         GameObject Desk(float x, float z, float rot)
         {
-            var d = Grp("desk");
-            Bx(1.4f, 0.06f, 0.75f, Std(0x5a4a38), d).At(0, 0.76f, 0);
-            foreach (var l in new[] { (-0.62f, -0.3f), (0.62f, -0.3f), (-0.62f, 0.3f), (0.62f, 0.3f) }) Bx(0.05f, 0.76f, 0.05f, Std(0x333333), d).At(l.Item1, 0.38f, l.Item2);
+            var d = Grp("desk");   // two school desks side by side; their open ends face -Z
+            foreach (var dx in new[] { -0.37f, 0.37f }) { var sd = BakedMesh.Spawn(w, "SchoolDesk", d.transform, 1.02f); if (sd != null) sd.At(dx, 0, 0); }
             d.At(x, 0, z).RotY(rot);
             return Prop(d);
         }
@@ -146,11 +145,7 @@ namespace ThinkingIt
             // the consent room: a desk, a chair, the form
             Desk(cx(4) + 1, cx(6), 0);
             Doc(cx(4) + 1.2f, 0.8f, cx(6), "e_consent");
-            var ch = Grp("chair");
-            Bx(0.45f, 0.05f, 0.45f, Std(0x5a6a70, 0.7f), ch).At(0, 0.46f, 0);
-            Bx(0.45f, 0.45f, 0.04f, Std(0x5a6a70, 0.7f), ch).At(0, 0.72f, -0.21f);
-            foreach (var sx in new[] { -0.19f, 0.19f }) foreach (var sz in new[] { -0.19f, 0.19f }) Bx(0.03f, 0.46f, 0.03f, Std(0x7a7e80, 0.45f, 0.6f), ch).At(sx, 0.23f, sz);
-            ch.At(cx(4) + 1, 0, cx(6) - 0.7f); Prop(ch);
+            Prop(ChairModel(cx(4) + 1, cx(6) - 0.7f, 0));
             // the locker room: lockers, a bench, a page someone tore out of a notebook
             for (int i = 0; i < 4; i++)
             {
@@ -193,8 +188,8 @@ namespace ThinkingIt
                 Pl(C, 1.6f, glass).At(17 * C + 0.02f, 1.6f, cx(y)).RotY(-PI / 2);
                 Pl(C, 1.6f, glass).At(18 * C - 0.02f, 1.6f, cx(y)).RotY(PI / 2);
             }
-            Bx(C, 0.8f, 3 * C, Mats.Std(Color.white, 0.85f, 0, Chapter1.WallTex())).At(17 * C + 1, 0.4f, 9 * C + 3);
-            Bx(C, 0.8f, 3 * C, Mats.Std(Color.white, 0.85f, 0, Chapter1.WallTex())).At(17 * C + 1, WALL_H - 0.4f, 9 * C + 3);
+            Bx(C, 0.8f, 3 * C, Chapter1.WallMat()).At(17 * C + 1, 0.4f, 9 * C + 3);
+            Bx(C, 0.8f, 3 * C, Chapter1.WallMat()).At(17 * C + 1, WALL_H - 0.4f, 9 * C + 3);
             foreach (var z in new[] { 9 * C, 10 * C, 11 * C, 12 * C }) Bx(0.12f, 1.6f, 0.12f, frame).At(17 * C + 1, 1.6f, z);
             // the console
             var console = Grp("console");
@@ -222,12 +217,8 @@ namespace ThinkingIt
         void Chamber()
         {
             // the chair, bolted to the floor, with straps
-            var chair = Grp("the chair"); var steel = Mats.Std(MathX.Hex(0x9aa0a4), 0.35f, 0.7f); var leather = Std(0x3a2a20, 0.8f);
-            Bx(0.6f, 0.08f, 0.55f, leather, chair).At(0, 0.5f, 0);
-            Bx(0.6f, 0.9f, 0.08f, leather, chair).At(0, 0.98f, -0.25f).Rot(-0.08f, 0, 0);
-            foreach (var sx in new[] { -0.32f, 0.32f }) { Bx(0.06f, 0.06f, 0.5f, steel, chair).At(sx, 0.72f, 0); Bx(0.08f, 0.02f, 0.12f, Std(0x1a1a1a), chair).At(sx, 0.76f, 0.1f); }
-            Cy(0.08f, 0.12f, 0.46f, 12, steel, chair).At(0, 0.23f, 0);
-            Cy(0.35f, 0.35f, 0.02f, 24, steel, chair).At(0, 0.01f, 0);
+            var chair = Grp("the chair");   // the old barber's chair, bolted down
+            BakedMesh.Spawn(w, "BarberShopChair", chair.transform, 0.9f);
             chair.At(center.x, 0, center.z).RotY(-PI / 2); Prop(chair);
             // Teo, in the chair
             teo = Grp("Teo");
@@ -242,7 +233,7 @@ namespace ThinkingIt
                 keep(Cy(0.055f, 0.055f, 0.5f, 8, cloth, teo).At(sx, 0.28f, 0.44f));                    // shins
                 keep(Cy(0.045f, 0.045f, 0.5f, 8, skin, teo).At(sx * 3.2f, 0.82f, 0.05f).Rot(0.3f, 0, 0)); // arms on the armrests
             }
-            teo.At(center.x, 0, center.z).RotY(-PI / 2);
+            teo.At(center.x, 0.06f, center.z).RotY(-PI / 2);
             // the bell, high on the north wall
             bellPos = new Vector3(cx(21), 2.6f, 5 * C + 0.2f);
             var bell = Grp("bell");
@@ -285,7 +276,7 @@ namespace ThinkingIt
             for (int i = 0; i < 3; i++)
             {
                 var t = trials[i] = new Trial();
-                Bx(C, 0.9f, C, Mats.Std(Color.white, 0.85f, 0, Chapter1.WallTex())).At(cx(doorX[i]), WALL_H - 0.45f, cx(14));   // a lintel over the doorway, for the sign
+                Bx(C, 0.9f, C, Chapter1.WallMat()).At(cx(doorX[i]), WALL_H - 0.45f, cx(14));   // a lintel over the doorway, for the sign
                 t.start = new Vector3(cx(doorX[i]), 0, 15 * C + 0.5f);
                 Pl(0.7f, 0.3f, Mats.Std(Color.white, 0.6f, 0, Chapter3.Sign("TRIAL " + sign[i], null))).At(cx(doorX[i]), 2.6f, 14 * C - 0.03f).RotY(PI);
                 t.lampMat = Mats.Std(MathX.Hex(0x301010), 0.5f, 0, null, null, null, 1, MathX.Hex(0xff3020), 1.2f, false, false);

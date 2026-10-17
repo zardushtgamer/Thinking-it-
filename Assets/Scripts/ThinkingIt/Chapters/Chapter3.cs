@@ -266,11 +266,7 @@ namespace ThinkingIt
                 foreach (var sx in new[] { -0.09f, 0.09f }) Cy(0.045f, 0.045f, 0.03f, 12, Std(0x1a1a1a, 0.7f), hp).At(sx, 0, 0).Rot(0, 0, PI / 2);
                 hp.At(0.38f, 0.045f, 0.05f).Rot(-PI / 2, 0, 0.3f);
                 deck.At(cx(7) + 0.3f, 0.79f, cx(10) - 1.6f + i * 1.6f).RotY(-PI / 2);
-                var ch2 = Grp("chair");
-                Bx(0.44f, 0.05f, 0.42f, wood, ch2).At(0, 0.45f, 0);
-                Bx(0.44f, 0.45f, 0.04f, wood, ch2).At(0, 0.72f, 0.2f);
-                foreach (var lx in new[] { -0.19f, 0.19f }) foreach (var lz in new[] { -0.18f, 0.18f }) Bx(0.04f, 0.45f, 0.04f, darkWood, ch2).At(lx, 0.22f, lz);
-                ch2.At(cx(7) - 0.65f, 0, cx(10) - 1.6f + i * 1.6f).RotY(-PI / 2 + MathX.Jit(0.3f)); Prop(ch2);
+                var ch2 = ChairModel(cx(7) - 0.65f, cx(10) - 1.6f + i * 1.6f, PI + -PI / 2 + MathX.Jit(0.3f)); Prop(ch2);
             }
             var speaker = Grp("speaker");
             Bx(0.5f, 0.8f, 0.4f, darkWood, speaker).At(0, 0.4f, 0);

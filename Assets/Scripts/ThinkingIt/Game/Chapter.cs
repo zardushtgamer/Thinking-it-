@@ -97,6 +97,22 @@ namespace ThinkingIt
             return it;
         }
 
+        // The shared hand-made models. All of them face +Z (a chair's seat looks toward +Z, the TV's glass too), origin at the floor.
+        protected GameObject ChairModel(float x, float z, float face, float y = 0)
+        {
+            var g = BakedMesh.Spawn(w, "SchoolChair") ?? w.Group("chair");
+            g.At(x, y, z).RotY(face);
+            return g;
+        }
+
+        // A television model with an optional glowing screen laid over its glass (the model faces +Z).
+        protected GameObject TvModel(GameObject parent, Material screen)
+        {
+            var m = BakedMesh.Spawn(w, "Television", parent ? parent.transform : null) ?? w.Group("tv", parent ? parent.transform : null);
+            if (screen != null) Pl(0.40f, 0.32f, screen, m).At(0.06f, 0.26f, 0.247f);
+            return m;
+        }
+
         protected GameObject Prop(GameObject go, int sx = -1, int sy = -1)
         {
             World.Tagged(go, "prop");
