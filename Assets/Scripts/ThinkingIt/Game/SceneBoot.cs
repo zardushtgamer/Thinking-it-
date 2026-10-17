@@ -7,7 +7,7 @@ namespace ThinkingIt
     {
         public enum Mode { Title, Chapter }
         public Mode mode = Mode.Chapter;
-        [Range(1, 5)] public int chapter = 1;
+        [Range(1, 6)] public int chapter = 1;
 
         void Start()
         {

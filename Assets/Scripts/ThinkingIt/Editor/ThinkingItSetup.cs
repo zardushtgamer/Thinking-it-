@@ -18,7 +18,7 @@ namespace ThinkingIt.EditorTools
         const string Res = "Assets/Resources/ThinkingIt";
         static readonly string[] Scenes = {
             "Assets/Scenes/LoadingScene.unity", "Assets/Scenes/Title.unity",
-            "Assets/Scenes/Chapter1.unity", "Assets/Scenes/Chapter2.unity", "Assets/Scenes/Chapter3.unity", "Assets/Scenes/Chapter4.unity", "Assets/Scenes/Chapter5.unity" };
+            "Assets/Scenes/Chapter1.unity", "Assets/Scenes/Chapter2.unity", "Assets/Scenes/Chapter3.unity", "Assets/Scenes/Chapter4.unity", "Assets/Scenes/Chapter5.unity", "Assets/Scenes/Chapter6.unity" };
 
         static ThinkingItSetup()
         {

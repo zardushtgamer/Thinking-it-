@@ -162,6 +162,7 @@ namespace ThinkingIt
                 case 3: return new Chapter3();
                 case 4: return new Chapter4();
                 case 5: return new Chapter5();
+                case 6: return new Chapter6();
                 default: return new Chapter1();
             }
         }

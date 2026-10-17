@@ -136,7 +136,7 @@ namespace ThinkingIt
         readonly Dictionary<int, Level> levels = new Dictionary<int, Level>();
         int travelTo, travelPhase; bool travelForward; float travelT, noEndUntil;
         // where the player starts in each chapter, and where the door back sits (always the west wall of the first room)
-        static readonly float[] BACK_DOOR_Z = { 0, 0, 4f, 7.5f, 4f, 21f };
+        static readonly float[] BACK_DOOR_Z = { 0, 0, 4f, 7.5f, 4f, 3f, 21f };
 
         Level BuildLevel(int n)
         {
@@ -152,7 +152,7 @@ namespace ThinkingIt
             lw.AutoObstacles();
             var lv = new Level { n = n, ch = lc, w = lw, it = new ItModel(lw.root) };
             levels[n] = lv;
-            if (n >= 3 && n <= 5) AddDoor(lv, new Vector3(2.0f + 0.07f, 0, BACK_DOOR_Z[n]), Mathf.PI / 2, "portal_back", "go back", false);
+            if (n >= 3 && n <= 6) AddDoor(lv, new Vector3(2.0f + 0.07f, 0, BACK_DOOR_Z[n]), Mathf.PI / 2, "portal_back", "go back", false);
             w = pw; ch = pc;
             return lv;
         }
@@ -195,7 +195,7 @@ namespace ThinkingIt
 
         public void Travel(int n, bool forward)
         {
-            if (state == GState.Switch || n < 1 || n > 5 || cur == null) return;
+            if (state == GState.Switch || n < 1 || n > 6 || cur == null) return;
             if (forward)
             {
                 cur.done = true;
@@ -228,7 +228,7 @@ namespace ThinkingIt
             timers.Clear(); au.SilenceLoops();
             reading = null; hud.HideDoc();
             subtitles.Clear(); hints.Clear(); thought = null; near = null; focusing = null; gaze = null;
-            exposure = 0; hud.SetBlack(0);
+            exposure = 0; camY = 0; hud.SetBlack(0);
             Level to;
             if (!levels.TryGetValue(travelTo, out to)) to = BuildLevel(travelTo);   // the heavy part, hidden behind the black
             cur = to; ApplyLevel(to);
@@ -593,7 +593,7 @@ namespace ThinkingIt
             if (state == GState.End || state == GState.Switch || time < noEndUntil) return;
             var e = ch.End();
             // the chapters are one map: the exit leads straight on to the next one, no menu in between
-            if (e.hasNext && chapterNum < 5) { Travel(chapterNum + 1, true); return; }
+            if (e.hasNext && chapterNum < 6) { Travel(chapterNum + 1, true); return; }
             state = GState.End;
             LockCursor(false);
             au.SilenceLoops();
@@ -629,7 +629,7 @@ namespace ThinkingIt
                 if (OverlapScanner.Active) { OverlapScanner.Clear(); Hint("Overlap check cleared.", 2); }
                 else { var rep = OverlapScanner.Scan(w.root, chapterNum); Hint(rep.Split('\n')[0], 6); }
             }
-            if (kb != null && kb.f9Key.wasPressedThisFrame && (state == GState.Play || state == GState.Paused) && chapterNum < 5) { Travel(chapterNum + 1, true); return; }
+            if (kb != null && kb.f9Key.wasPressedThisFrame && (state == GState.Play || state == GState.Paused) && chapterNum < 6) { Travel(chapterNum + 1, true); return; }
 
             if (state == GState.Paused)
             {

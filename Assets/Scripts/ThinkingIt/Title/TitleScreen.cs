@@ -102,9 +102,10 @@ namespace ThinkingIt
             AddItem(mainList, 1, "II", "Chapter Two", "The Waiting Room", () => SceneFlow.Chapter(2));
             AddItem(mainList, 2, "III", "Chapter Three", "The Archive", () => SceneFlow.Chapter(3));
             AddItem(mainList, 3, "IV", "Chapter Four", "The Lake House", () => SceneFlow.Chapter(4));
-            AddItem(mainList, 4, "V", "Chapter Five", "The White Bear Room", () => SceneFlow.Chapter(5));
-            AddItem(mainList, 5, "·", "Settings", null, () => { mainList.gameObject.SetActive(false); settingsBox.gameObject.SetActive(true); });
-            AddItem(mainList, 6, "·", "Quit", null, () => { Application.Quit();
+            AddItem(mainList, 4, "V", "Chapter Five", "The Stairwell", () => SceneFlow.Chapter(5));
+            AddItem(mainList, 5, "VI", "Chapter Six", "The White Bear Room", () => SceneFlow.Chapter(6));
+            AddItem(mainList, 6, "·", "Settings", null, () => { mainList.gameObject.SetActive(false); settingsBox.gameObject.SetActive(true); });
+            AddItem(mainList, 7, "·", "Quit", null, () => { Application.Quit();
 #if UNITY_EDITOR
                 UnityEditor.EditorApplication.isPlaying = false;
 #endif

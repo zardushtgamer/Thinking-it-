@@ -72,7 +72,8 @@ namespace ThinkingIt
         // ---------------------------------------------------------------- layout: which room goes where, and how they connect
         bool TryLayout(System.Random rnd, bool strict)
         {
-            var order = new List<RoomT>(rooms); Shuffle(order, rnd);
+            // fixed floor plan: the same maze every run
+            var order = new List<RoomT> { roomLobby, roomCorr, roomOff, roomWards, stor1, roomSec, roomHall, stor2, roomGen };
             var cand = new List<Link>();
             for (int s = 0; s < 9; s++)
             {
@@ -185,9 +186,10 @@ namespace ThinkingIt
         void Maze()
         {
             MakeRooms();
-            var rnd = new System.Random(System.Environment.TickCount ^ 0x2f6b9d1);
+            var rnd = new System.Random(1998);
             bool ok = false;
             for (int attempt = 0; attempt < 3000 && !ok; attempt++) ok = TryLayout(rnd, attempt < 2000);
+            if (!ok) { rnd = new System.Random(System.Environment.TickCount); for (int attempt = 0; attempt < 3000 && !ok; attempt++) ok = TryLayout(rnd, false); }
             if (!ok) Debug.LogError("Chapter 1: could not lay out the maze");
 
             // 1. everything the rooms contain moves with its room

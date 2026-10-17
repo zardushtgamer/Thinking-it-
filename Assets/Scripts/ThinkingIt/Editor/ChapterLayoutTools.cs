@@ -34,12 +34,14 @@ namespace ThinkingIt.EditorTools
         [MenuItem("Tools/Thinking It/Layout/Build Chapter 3 Into Scene")] static void B3() => BuildInto(3);
         [MenuItem("Tools/Thinking It/Layout/Build Chapter 4 Into Scene")] static void B4() => BuildInto(4);
         [MenuItem("Tools/Thinking It/Layout/Build Chapter 5 Into Scene")] static void B5() => BuildInto(5);
+        [MenuItem("Tools/Thinking It/Layout/Build Chapter 6 Into Scene")] static void B6() => BuildInto(6);
 
         [MenuItem("Tools/Thinking It/Layout/Open Chapter 1 Layout Scene", false, 100)] static void O1() => OpenScene(1);
         [MenuItem("Tools/Thinking It/Layout/Open Chapter 2 Layout Scene", false, 101)] static void O2() => OpenScene(2);
         [MenuItem("Tools/Thinking It/Layout/Open Chapter 3 Layout Scene", false, 102)] static void O3() => OpenScene(3);
         [MenuItem("Tools/Thinking It/Layout/Open Chapter 4 Layout Scene", false, 103)] static void O4() => OpenScene(4);
         [MenuItem("Tools/Thinking It/Layout/Open Chapter 5 Layout Scene", false, 104)] static void O5() => OpenScene(5);
+        [MenuItem("Tools/Thinking It/Layout/Open Chapter 6 Layout Scene", false, 105)] static void O6() => OpenScene(6);
 
         [MenuItem("Tools/Thinking It/Layout/Save Layout From Open Scene", false, 200)] static void SaveMenu() => SaveLayout();
         [MenuItem("Tools/Thinking It/Layout/Scan Overlaps In Open Scene", false, 201)] static void ScanMenu() => Scan();

@@ -20,24 +20,26 @@ namespace ThinkingIt
                 + "\f[ LOOKING ]\n\nSome things here are unfinished.\nA pale outline where a door should be.\nA gap where the floor should be.\n\nStare at them. Hold your gaze.\nThe longer you look, the more real they become.\n\nThe building notices when you do this."
                 + "\f[ SPRINTING ]\n\nHold SHIFT while walking to run.\n\nRunning is faster, but it is loud.\nThe bar at the bottom of your screen is your breath.\nWhen it runs out you must walk until it returns.\n\nWherever you run, it will come to look."
                 + "\f[ IT ]\n\nSubject 14 described a tall shape\nstanding in the corner of the room.\n\nIt does not move while you look at it.\nIt is drawn to the places you keep looking.\n\nIt is made of attention.\nWe do not know what it wants.\nWe know it gets heavier when it is described."
-                + "\f[ DREAD ]\n\nSome of the documents here describe it.\nReading them is not recommended.\n\nFear builds as you read, stare and run.\nThe more afraid you are, the closer it comes.\n\nIf it catches you, you start again\nfrom your last checkpoint."
-                + "\f[ END OF ORIENTATION ]\n\nFind every note. Find every tape. Find the way out.\nAnd whatever you do —\n\nDon't think about it.\n\n— Dr. H. Lund")
+                + "\f[ DOOR CODE ]\n\nThe stairwell door is sealed with a 5-digit code.\nDr. Lund split it up so no one person held it.\n\nThis terminal holds the 1st digit:\n\n          3\n\nThe others are written down in the offices,\nthe wards, a note of Teo's,\nand on whoever died last."
+                + "\f[ END OF ORIENTATION ]\n\nFind the code. Find the way out.\nAnd whatever you do —\n\nDon't think about it.\n\n— Dr. H. Lund")
             { terminal = true },
             ["brochure"] = new Doc("Halvard Institute for Cognitive Research", false,
                 "SUMMER VOLUNTEER PROGRAM — 1998\n\nPaid participation for young people aged 13–17.\nRoom and board provided. Six weeks.\n\n\"Learn to quiet your mind.\"\n\n<i>Project White Bear is a study of healthy forgetting.</i>"),
             ["teoNote"] = new Doc("A note, in Teo's handwriting", false,
-                "Everything I found is in this building somewhere. Notes, tapes. Find all of it before you go down the stairs.\n\nThe doors are open. Something else is, too. It is fast and it cannot turn. Use that.\n\nI'm not crazy.\n\n— T"),
+                "The stairwell door has a five-digit code and Lund split it between the rooms. I found the 4th digit: 1. The other four are out there.\n\nThe doors are open. Something else is, too. It is fast and it cannot turn. Use that.\n\nI'm not crazy.\n\n— T"),
             ["session41"] = new Doc("Session Log 41", true,
                 "Subject 14 (M.V., age 14) instructed to suppress target memory (the lake).\n\nSuppression successful.\n\nResidual effect: subject reports \"someone standing in the corner of the room\" whenever she stops trying. It is tall. It does not move while she looks at it.\n\nWe have instructed her not to look at it."),
             ["memo"] = new Doc("Internal Memo — RE: the shape", true,
-                "Effective immediately, staff will no longer refer to it by name.\n\nStaff will not describe it in writing. Staff will not draw it.\n\nEvery description we write makes it heavier. It has started standing in the corridors when no subject is present.\n\n— Dr. H. Lund"),
+                "Effective immediately, staff will no longer refer to it by name.\n\nStaff will not describe it in writing. Staff will not draw it.\n\nEvery description we write makes it heavier. It has started standing in the corridors when no subject is present.\n\n— Dr. H. Lund\n\nP.S. The stairwell door is on a five-digit code now. I have split it between staff. Mine is the 2nd digit: 8."),
             ["drawing"] = new Doc("A crayon drawing", true,
                 "A white bear, standing over blue water.\nSomething small is under the water.\n\nWritten on the back, in pencil:\n<i>\"Found in Subject 14's room. She says she didn't draw it. She says she doesn't remember the lake.\"</i>"),
 
             ["w_chart"] = new Doc("Ward A — bed chart", false,
-                "Bed 1: Participant 03. Discharged.\nBed 2: Participant 07. Moved to the apartment wing.\nBed 3: Subject 14. <i>Lights to remain ON at all times.</i>\nBed 4: Participant 11. Discharged.\nBed 5: —\nBed 6: —\n\nNight staff: do not wake Subject 14. Do not ask her what she is looking at."),
+                "Bed 1: Participant 03. Discharged.\nBed 2: Participant 07. Moved to the apartment wing.\nBed 3: Subject 14. <i>Lights to remain ON at all times.</i>\nBed 4: Participant 11. Discharged.\nBed 5: —\nBed 6: —\n\nNight staff: do not wake Subject 14. Do not ask her what she is looking at.\n\nPinned to the board: <i>stairwell door code, 3rd digit: 4</i>"),
             ["w_nurse"] = new Doc("Night nurse's log", true,
                 "02:10 — Bed 3 awake again. Says it is standing at the foot of the bed.\n02:40 — Checked. Nothing there. There was a dent in the mattress at the foot of the bed, as if someone heavy had been sitting.\n03:15 — Bed 3 says it has stopped standing. It sits now. It is learning.\n03:16 — I am requesting a transfer."),
+            ["w_code"] = new Doc("Maintenance worker's notebook", false,
+                "Power's off again. Lund gave me the last digit of the stairwell code in case the lights fail: 7.\n\nI wrote it on my hand too, in case I forget.\n\nSomething is behind me. It is not slowing down."),
             ["w_iso"] = new Doc("Scratched into the isolation room door", true,
                 "THEY PUT ME IN HERE SO IT WOULD HAVE NOWHERE TO STAND\n\nIT STANDS IN THE CORNER ANYWAY\n\nIF YOU CAN READ THIS IT CAN READ IT TOO\n\n— M"),
             ["w_fuse"] = new Doc("Maintenance note, taped to the breaker", false,
@@ -97,7 +99,16 @@ namespace ThinkingIt
             ["c_lund"] = new Doc("Dr. Lund — final entry", true,
                 "Subject 14 left the facility on her own. It went with her.\n\nI was wrong. You cannot move a memory out of a person. You can only teach them to stop looking at it.\n\nAnd whatever you stop looking at grows.\n\nThe only way to put it down is to look at it until the end."),
 
-            // ---- Chapter 5 ----
+
+            // ---- Chapter 5: the stairwell ----
+            ["s_stairs"] = new Doc("Scratched into the paint", false,
+                "B1  B2  B3\nB3  B3\n\nSTOP COUNTING\n\nThe numbers on the landings stop making sense after the third floor. It doesn't matter. Keep going down. The door is on the fifth."),
+            ["s_maint"] = new Doc("Maintenance log, Sublevel 1", false,
+                "Sets are not to be plugged in. I have unplugged them all. They still show snow.\n\nIf you stare at one it starts to climb out. It is made of the picture. It only moves when you move, one step for every step you take, and it never stops following the way you walked.\n\nStand still and it stands still. Lead it under a light. The light takes it apart.\n\n— R. (maintenance)"),
+            ["s_noise"] = new Doc("Sublevel 1 — incident report", true,
+                "Staff member found standing in front of a television for six hours. Screen showed only snow. He said the snow was looking back.\n\nWe have named it NOISE. It is not the shape. It is what the shape leaves when nobody is watching it properly.\n\nDo not write down what it looks like. Every description makes it heavier."),
+
+            // ---- Chapter 6 ----
             ["e_consent"] = new Doc("Consent form — participant, minor", false,
                 "Participant: Mara Venn. Age: 14.\n\nReason given by parent:\n<i>\"She can't stop thinking about the lake. She doesn't sleep. She says it was her fault.\"</i>\n\nPayment: six weeks, room and board.\n\nSigned on behalf of the participant. The participant did not sign."),
             ["e_name"] = new Doc("A page torn from a notebook", true,
@@ -135,7 +146,12 @@ namespace ThinkingIt
                 new Card("Somewhere down here is the reason they chose you.", 4.5f),
             },
             [5] = new[] {
-                new Card("Chapter Five\n<i>The White Bear Room</i>", 4f),
+                new Card("Chapter Five\n<i>The Stairwell</i>", 4f),
+                new Card("The only way down to the White Bear Room.\nThere is no lift.", 5f),
+                new Card("Don't count the floors.", 3.5f),
+            },
+            [6] = new[] {
+                new Card("Chapter Six\n<i>The White Bear Room</i>", 4f),
                 new Card("One chair. One bell. One instruction.", 4.5f),
                 new Card("<i>Don't think of a white bear.</i>", 4f),
             },
@@ -147,8 +163,8 @@ namespace ThinkingIt
             },
         };
 
-        public static readonly string[] ChapterNames = { "", "Arrival", "The Waiting Room", "The Archive", "The Lake House", "The White Bear Room" };
-        public static readonly string[] ChapterNumbers = { "", "One", "Two", "Three", "Four", "Five" };
+        public static readonly string[] ChapterNames = { "", "Arrival", "The Waiting Room", "The Archive", "The Lake House", "The Stairwell", "The White Bear Room" };
+        public static readonly string[] ChapterNumbers = { "", "One", "Two", "Three", "Four", "Five", "Six" };
 
         public static readonly Line[] TeoRecorder = {
             new Line("TEO", "Mara. If you found this, you didn't listen to me. Of course you didn't.", 5.5f),

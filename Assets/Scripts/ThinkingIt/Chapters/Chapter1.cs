@@ -17,7 +17,14 @@ namespace ThinkingIt
         readonly HashSet<string> tapes = new HashSet<string>();
         static readonly string[] NOTES = { "brochure", "teoNote", "session41", "memo", "drawing", "w_chart", "w_nurse", "w_iso", "w_fuse" };
         const int TAPES_TOTAL = 6;
-        bool hasKey;
+        // the stairwell door: a 5-digit code, one digit in each of five places
+        const string CODE = "38417";
+        static readonly Dictionary<string, int> DIGIT_AT = new Dictionary<string, int> { ["tutorial"] = 0, ["memo"] = 1, ["w_chart"] = 2, ["teoNote"] = 3, ["w_code"] = 4 };
+        static readonly string[] DIGIT_PLACE = { "the orientation terminal in the lobby", "the memo on the offices desk", "the bed chart in the wards", "Teo's note", "the dead maintenance worker" };
+        readonly bool[] digitSeen = new bool[5];
+        KeypadGui keypad;
+        bool solved;
+        int DigitsFound() { int n = 0; foreach (var b in digitSeen) if (b) n++; return n; }
         int NotesRead() { int n = 0; foreach (var id in NOTES) if (g.read.Contains(id)) n++; return n; }
         bool powerDread, power, recorder, eyesTaught, pitHint, doorHint, exitHint, wardHint, isoHint;
         int fuses; readonly List<GameObject> fuseSlots = new List<GameObject>();
@@ -236,7 +243,7 @@ namespace ThinkingIt
             System.Action<int, int, string, Texture> doc = (x, y, id, tex) =>
             {
                 var p = Pl(0.32f, 0.42f, Mats.Unlit(MathX.Hex(0xb8b2a4), tex));
-                p.At(cx(x), 0.81f, cx(y)).Rot(-PI / 2, 0, Random.value - 0.5f);
+                p.At(cx(x), 0.905f, cx(y)).Rot(-PI / 2, 0, Random.value - 0.5f);
                 World.Tagged(p, "doc", id);
                 AddInteract("doc", "doc", id, p.transform.position, p, "read");
             };
@@ -252,7 +259,7 @@ namespace ThinkingIt
                 });
                 var orientTerm = Grp("terminal");
                 TvModel(orientTerm, Mats.Unlit(Color.white, termScr));
-                orientTerm.At(cx(4) + 0.5f, 0.8f, cx(2) - 0.12f).RotY(-0.15f);
+                orientTerm.At(cx(4) + 0.5f, 0.885f, cx(2) - 0.12f).RotY(-0.15f);
                 World.Tagged(orientTerm, "doc", "tutorial");
                 AddInteract("doc", "doc", "tutorial", orientTerm.transform.position + new Vector3(0, 0.2f, 0), orientTerm, "use the terminal");
                 w.PointLight(orientTerm.transform.position + new Vector3(0, 0.45f, 0.5f), Col(0x40ff80), 0.2f, 3f);
@@ -264,12 +271,12 @@ namespace ThinkingIt
             {   // an old television on the maintenance desk, replacing the CRT (faces the chair)
                 var d = desk(22, 5, -0.3f);
                 var tvm = BakedMesh.Spawn(w, "Television", d.transform);
-                if (tvm != null) tvm.At(-0.28f, 0.8f, -0.12f).RotY(0.1f);   // left of the fuse, which sits on the right of this desk
+                if (tvm != null) tvm.At(-0.28f, 0.885f, -0.12f).RotY(0.1f);   // left of the fuse, which sits on the right of this desk
             }
             {   // a megaphone left on a desk, mouth pointing at the chair
                 var d = desk(13, 11, 0);
                 var mp = BakedMesh.Spawn(w, "Megaphone", d.transform);
-                if (mp != null) mp.At(-0.35f, 0.8f, 0.02f).RotY(-PI / 2 + 0.4f);
+                if (mp != null) mp.At(-0.35f, 0.885f, 0.02f).RotY(-PI / 2 + 0.4f);
             }
             desk(7, 9, 0); doc(7, 9, "w_chart", paper);
             desk(5, 13, PI); doc(5, 13, "w_nurse", paper);
@@ -342,9 +349,9 @@ namespace ThinkingIt
                 World.Tagged(t, "tape", id);
                 AddInteract("tape", "tape", id, t.transform.position, t, "play the tape");
             };
-            tapeAt(cx(5) - 0.4f, 0.83f, cx(13), "c1a");                 // wards: on the night nurse's desk
-            tapeAt(cx(27) - 0.37f, 0.83f, cx(6) + 0.16f, "c1b");        // offices: on the memo desk
-            tapeAt(cx(16) + 0.4f, 0.83f, cx(12), "c1c");                // security: on the desk
+            tapeAt(cx(5) - 0.4f, 0.91f, cx(13), "c1a");                 // wards: on the night nurse's desk
+            tapeAt(cx(27) - 0.37f, 0.91f, cx(6) + 0.16f, "c1b");        // offices: on the memo desk
+            tapeAt(cx(16) + 0.4f, 0.91f, cx(12), "c1c");                // security: on the desk
             tapeAt(cx(26) + 0.3f, 0.03f, cx(13) - 0.6f, "c1d");         // generator room: on the floor
             tapeAt(cx(11) + 0.4f, 0.03f, cx(5) - 0.4f, "c1e");          // collapsed corridor: on the floor
 
@@ -363,16 +370,17 @@ namespace ThinkingIt
                 Bx(0.11f, 0.1f, 0.62f, cover, corpse).At(-0.3f, 0.1f, 0.2f).RotY(0.35f);       // arms, one flung out
                 Bx(0.11f, 0.1f, 0.6f, cover, corpse).At(0.3f, 0.1f, 0.35f).RotY(-0.5f);
                 Bx(0.2f, 0.07f, 0.05f, Std(0xc08020, 0.5f), corpse).At(0.12f, 0.255f, -0.05f); // tool-belt pouch
-                var keyMat = Mats.Std(MathX.Hex(0xd8b040), 0.25f, 0.9f);
-                var key = Grp("key", corpse).At(0.12f, 0.3f, 0.0f);
-                Cy(0.016f, 0.016f, 0.01f, 10, keyMat, key).At(0, 0, 0).Rot(PI / 2, 0, 0);
-                Bx(0.012f, 0.012f, 0.08f, keyMat, key).At(0, 0, 0.05f);
+                // his notebook: on the floor, half hidden under his torso
+                var nb = Grp("notebook", corpse).At(0.22f, 0.014f, -0.12f).RotY(0.35f);
+                Bx(0.16f, 0.024f, 0.22f, Std(0x5a2a22, 0.7f), nb);
+                Bx(0.14f, 0.012f, 0.2f, Std(0xd8d2bc, 0.9f), nb).At(0.004f, 0.012f, 0);
                 corpse.At(cx(24) - 0.2f, 0, cx(14) - 0.2f).RotY(0.5f);
-                World.Tagged(corpse, "prop");
-                var ci = AddInteract("body", "body", null, new Vector3(cx(24) - 0.2f, 0.35f, cx(14) - 0.2f), corpse, "search the body");
-                ci.range = 2.4f;
+                World.Tagged(corpse, "body"); World.Tagged(nb, "body");
+                var ci = AddInteract("body", "body", null, nb.transform.position + new Vector3(0, 0.12f, 0), null, "take the notebook from under the body");
+                ci.range = 2.8f; ci.maxGaze = 3.2f;
             }
 
+            { var kg = new GameObject("Keypad"); kg.transform.SetParent(w.root, false); keypad = kg.AddComponent<KeypadGui>(); }
             // the stairwell door
             AddInteract("exit", "exit", null, new Vector3(cx(1) + 0.6f, 1.2f, cx(18)), null, "open the door");
 
@@ -682,6 +690,8 @@ namespace ThinkingIt
         public override void Tick(float dt)
         {
             float time = g.time; var au = g.au;
+            if (g.reading != null && DIGIT_AT.TryGetValue(g.reading, out var di) && !digitSeen[di]) { digitSeen[di] = true; g.Hint($"Door code digit {di + 1} of 5 found.", 4); }
+            KeypadTick();
             if (g.zone == "corridor" && g.px > cx(10 + roomCorr.dx) && !pitHint) { pitHint = true; g.Hint("The floor just... isn't there. But Teo's note said to look at it.", 6); }
             if (!doorHint) foreach (var gf in ghostDoors) if (!gf.done && MathX.Hypot(gf.center.x - g.px, gf.center.z - g.pz) < 5.5f) { doorHint = true; g.Hint("There should be a door here. You're almost sure there was.", 5); break; }
             if (g.zone == "wards" && !wardHint) { wardHint = true; g.Hint("The patient ward. Somebody left the beds made.", 5); }
@@ -736,6 +746,29 @@ namespace ThinkingIt
             if (g.hall && MathX.Hypot(g.px - exitPos.x, g.pz - exitPos.z) < 3f && g.near == null && !exitHint) { exitHint = true; g.Hint("The stairwell door. Open your eyes and press E.", 5); }
         }
 
+        void KeypadTick()
+        {
+            if (keypad == null) return;
+            keypad.known = digitSeen; keypad.open = g.reading == "__keypad";
+            if (!keypad.open) return;
+            var kb = UnityEngine.InputSystem.Keyboard.current; if (kb == null) return;
+            if (keypad.msg != null && Time.unscaledTime > keypad.msgUntil) keypad.msg = null;
+            if (keypad.msg != null) return;
+            var keys = new[] { kb.digit0Key, kb.digit1Key, kb.digit2Key, kb.digit3Key, kb.digit4Key, kb.digit5Key, kb.digit6Key, kb.digit7Key, kb.digit8Key, kb.digit9Key };
+            var pad = new[] { kb.numpad0Key, kb.numpad1Key, kb.numpad2Key, kb.numpad3Key, kb.numpad4Key, kb.numpad5Key, kb.numpad6Key, kb.numpad7Key, kb.numpad8Key, kb.numpad9Key };
+            for (int i = 0; i < 10; i++)
+                if ((keys[i].wasPressedThisFrame || pad[i].wasPressedThisFrame) && keypad.buf.Length < 5) { keypad.buf += i; g.au.Tone(500 + i * 40, 500 + i * 40, 0.05f, 0.07f); }
+            if (kb.backspaceKey.wasPressedThisFrame && keypad.buf.Length > 0) keypad.buf = keypad.buf.Substring(0, keypad.buf.Length - 1);
+            if (keypad.buf.Length == 5)
+            {
+                if (keypad.buf == CODE)
+                {
+                    solved = true; g.CloseDoc(); g.au.Tape(); g.Hint("The lock clicks open.", 4); g.EndChapter();
+                }
+                else { g.au.Bump(); keypad.msg = "WRONG CODE"; keypad.msgUntil = Time.unscaledTime + 1.2f; keypad.buf = ""; }
+            }
+        }
+
         public override void OnInteract(Interactable it)
         {
             var au = g.au;
@@ -752,22 +785,25 @@ namespace ThinkingIt
             }
             else if (it.kind == "body")
             {
-                if (hasKey) return;
-                hasKey = true; it.used = true; au.Tape();
-                g.Hint("You took the stairwell key.", 5);
-                g.Say(new[] { new Line("MARA", "A maintenance badge... half his face is gone. The stairwell key is still in his pocket.", 5.5f) });
+                au.Tape(); g.OpenDoc("w_code");
             }
             else if (it.kind == "exit")
             {
-                if (!hasKey) { au.Bump(); g.Hint("Locked. The maintenance worker must have had the key.", 5); }
-                else g.EndChapter();
+                if (solved) g.EndChapter();
+                else { keypad.buf = ""; keypad.msg = null; g.reading = "__keypad"; g.readingForbidden = false; au.Tone(660, 660, 0.06f, 0.08f); }
             }
         }
 
         public override string Objective()
         {
-            if (!hasKey) return "Find the stairwell key. The dead maintenance worker had it. HIM is looking for you.";
-            return "You have the key. Find the observation hall, get through it, find the stairs.";
+            if (solved) return "The door is open. Go down the stairs.";
+            int n = DigitsFound();
+            if (n < 5)
+            {
+                var miss = new List<string>(); for (int i = 0; i < 5; i++) if (!digitSeen[i]) miss.Add(DIGIT_PLACE[i]);
+                return $"The stairwell door needs a 5-digit code ({n}/5 found). Still to find: {string.Join(", ", miss)}. HIM is looking for you.";
+            }
+            return "You have all five digits. Find the observation hall and enter the code on the stairwell door.";
         }
 
         public override bool CustomIt(float dt) { if (him != null) him.Update(dt); return true; }
@@ -783,6 +819,40 @@ namespace ThinkingIt
                 title = "END OF CHAPTER ONE", sub = "Arrival", hasNext = true, next = "Chapter Two: The Waiting Room",
                 stats = $"tapes found: {tapes.Count} / {TAPES_TOTAL}\nforbidden documents read: {g.forbiddenRead} / 5\ntimes HIM reached you: {g.timesCaught}"
             };
+        }
+    }
+
+    // the number pad on the stairwell door, drawn over the game while the player is typing
+    public class KeypadGui : MonoBehaviour
+    {
+        public string buf = "", msg; public float msgUntil; public bool open; public bool[] known;
+        Texture2D tex;
+        void OnGUI()
+        {
+            if (!open) return;
+            if (tex == null) { tex = new Texture2D(1, 1); tex.SetPixel(0, 0, Color.white); tex.Apply(); }
+            float W = Screen.width, H = Screen.height, bw = 520, bh = 300, x = (W - bw) / 2, y = (H - bh) / 2;
+            var old = GUI.color;
+            GUI.color = new Color(0, 0, 0, 0.88f); GUI.DrawTexture(new Rect(x, y, bw, bh), tex);
+            GUI.color = new Color(0.27f, 1f, 0.52f, 0.9f);
+            GUI.DrawTexture(new Rect(x, y, bw, 2), tex); GUI.DrawTexture(new Rect(x, y + bh - 2, bw, 2), tex); GUI.DrawTexture(new Rect(x, y, 2, bh), tex); GUI.DrawTexture(new Rect(x + bw - 2, y, 2, bh), tex);
+            var title = new GUIStyle(GUI.skin.label) { fontSize = 18, alignment = TextAnchor.UpperCenter, fontStyle = FontStyle.Bold };
+            var big = new GUIStyle(GUI.skin.label) { fontSize = 54, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+            var small = new GUIStyle(GUI.skin.label) { fontSize = 14, alignment = TextAnchor.UpperCenter };
+            GUI.Label(new Rect(x, y + 14, bw, 30), "STAIRWELL DOOR  //  ENTER 5-DIGIT CODE", title);
+            string shown = ""; for (int i = 0; i < 5; i++) shown += (i < buf.Length ? buf[i].ToString() : "_") + (i < 4 ? "  " : "");
+            if (msg != null) GUI.color = new Color(1f, 0.25f, 0.2f);
+            GUI.Label(new Rect(x, y + 60, bw, 90), msg ?? shown, big);
+            GUI.color = new Color(0.27f, 1f, 0.52f, 0.7f);
+            if (known != null)
+            {
+                string k = ""; var ord = new[] { "1st", "2nd", "3rd", "4th", "5th" }; var dig = "38417";
+                for (int i = 0; i < 5; i++) k += ord[i] + ": " + (i < known.Length && known[i] ? dig[i].ToString() : "?") + (i < 4 ? "     " : "");
+                GUI.Label(new Rect(x, y + 170, bw, 24), "digits you have found", small);
+                GUI.Label(new Rect(x, y + 195, bw, 24), k, small);
+            }
+            GUI.Label(new Rect(x, y + 255, bw, 24), "type the digits   -   Backspace: delete   -   Esc / E: step back", small);
+            GUI.color = old;
         }
     }
 }

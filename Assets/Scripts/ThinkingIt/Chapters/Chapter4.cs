@@ -798,7 +798,7 @@ namespace ThinkingIt
             return new EndInfo
             {
                 title = "END OF CHAPTER FOUR", sub = "The Lake House", hasNext = true,
-                next = "Chapter Five: The White Bear Room",
+                next = "Chapter Five: The Stairwell",
                 note = "Mara Venn, 14, pulled her brother out of Halvard Lake on 14 July 1998. He was fine.",
                 stats = $"memories recovered: {memories} / 6\ntimes you looked at it: {g.timesSeen}\ntimes it reached you: {g.timesCaught}"
             };
