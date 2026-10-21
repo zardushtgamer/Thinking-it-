@@ -9,7 +9,7 @@ namespace ThinkingIt
     // is turning he turns to face YOU, and the next run is aimed straight at where you are (or at the first corner of the way to you).
     public class Him
     {
-        public const float WALK = 2.2f, RUN = 7.4f, TURN_TIME = 3f, R = 0.42f, SEE_RANGE = 28f, CATCH = 0.95f, SCALE = 1.08f;
+        public const float WALK = 2.2f, RUN = 10f, TURN_TIME = 1.5f, R = 0.42f, SEE_RANGE = 28f, CATCH = 0.95f, SCALE = 1.08f;
 
         enum S { Hidden, Patrol, Charge, Turn }
 
@@ -19,6 +19,9 @@ namespace ThinkingIt
         Transform pelvis, torso, head, jaw;
         readonly Transform[] hip = new Transform[2], knee = new Transform[2], ankle = new Transform[2], shoulder = new Transform[2], elbow = new Transform[2], wrist = new Transform[2];
         readonly List<Transform> fingers = new List<Transform>();
+        static readonly Color HIM_DARK = new Color(0.8f, 0.75f, 0.75f), HIM_SCARE = Color.white;
+        const float MODEL_H = 1.9f;   // the model is 1 unit tall; HIM is about two metres
+        Material himMat;
         Material muscle, muscleDark, tendon, bone, darkM, eyeM, irisM, pupilM, teethM, galea;
 
         S state = S.Hidden;
@@ -209,6 +212,91 @@ namespace ThinkingIt
                     var c2 = w.Cyl(0.005f, 0.007f, l1 * 0.9f, 6, bone, f2); c2.At(0, -l1 * 0.45f, 0);
                     fingers.Add(fp); fingers.Add(f2);
                 }
+            }
+
+            // the real model: it replaces the procedural body (which stays underneath, invisible, so the animation nodes keep working).
+            // (the darkness comes from the blackout in Game while he is out, not from the model)
+            var hm = BakedMesh.Load("HimModel");
+            if (hm != null)
+            {
+                foreach (var r in root.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
+                himMat = Mats.Std(HIM_DARK, 0.95f, 0f, BakedMesh.Texture("HimModel"));
+                if (!BuildRig(hm))
+                {
+                    var mo = w.MeshObj(hm, himMat, torso, "HIM model");
+                    mo.transform.localPosition = new Vector3(0, -1.03f, 0);
+                    mo.transform.localScale = Vector3.one * MODEL_H;
+                    foreach (var c in mo.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------ the rigged model (17 bones, weights baked in HimRig.bytes)
+        // order matters: it is the order the weights file was written in
+        static readonly string[] BN = { "pelvis", "spine", "chest", "neck", "head", "uArmL", "fArmL", "handL", "thighL", "shinL", "footL", "uArmR", "fArmR", "handR", "thighR", "shinR", "footR" };
+        static readonly int[] BP = { -1, 0, 1, 2, 3, 2, 5, 6, 0, 8, 9, 2, 11, 12, 0, 14, 15 };
+        static readonly Vector3[] BH = {
+            new Vector3(0, .50f, -.01f), new Vector3(0, .58f, -.01f), new Vector3(0, .72f, 0), new Vector3(0, .84f, .02f), new Vector3(0, .90f, .04f),
+            new Vector3(-.15f, .76f, 0), new Vector3(-.21f, .56f, 0), new Vector3(-.23f, .39f, .02f), new Vector3(-.085f, .50f, -.02f), new Vector3(-.095f, .27f, 0), new Vector3(-.10f, .07f, -.04f),
+            new Vector3(.15f, .76f, 0), new Vector3(.21f, .56f, 0), new Vector3(.23f, .39f, .02f), new Vector3(.085f, .50f, -.02f), new Vector3(.095f, .27f, 0), new Vector3(.10f, .07f, -.04f) };
+        Transform[] rig; Transform rigRoot;
+
+        bool BuildRig(Mesh hm)
+        {
+            var ta = Resources.Load<TextAsset>("ThinkingIt/Models/HimRig");
+            if (!ta) return false;
+            try
+            {
+                int vc, bc;
+                var bw = new BoneWeight[hm.vertexCount];
+                using (var br = new System.IO.BinaryReader(new System.IO.MemoryStream(ta.bytes)))
+                {
+                    vc = br.ReadInt32(); bc = br.ReadInt32();
+                    if (vc != hm.vertexCount || bc != BN.Length) return false;
+                    var idx = br.ReadBytes(vc * 4);
+                    for (int i = 0; i < vc; i++) { bw[i].boneIndex0 = idx[i * 4]; bw[i].boneIndex1 = idx[i * 4 + 1]; bw[i].boneIndex2 = idx[i * 4 + 2]; bw[i].boneIndex3 = idx[i * 4 + 3]; }
+                    for (int i = 0; i < vc; i++) { bw[i].weight0 = br.ReadSingle(); bw[i].weight1 = br.ReadSingle(); bw[i].weight2 = br.ReadSingle(); bw[i].weight3 = br.ReadSingle(); }
+                }
+                rigRoot = new GameObject("HIM rig").transform; rigRoot.SetParent(root.transform, false);
+                rigRoot.localScale = Vector3.one * MODEL_H;
+                rig = new Transform[BN.Length];
+                for (int i = 0; i < BN.Length; i++)
+                {
+                    rig[i] = new GameObject(BN[i]).transform;
+                    rig[i].SetParent(BP[i] < 0 ? rigRoot : rig[BP[i]], false);
+                    rig[i].localPosition = BP[i] < 0 ? BH[i] : BH[i] - BH[BP[i]];
+                }
+                var go = new GameObject("HIM model"); go.transform.SetParent(rigRoot, false);
+                var mesh = Object.Instantiate(hm); mesh.boneWeights = bw;
+                var bind = new Matrix4x4[BN.Length];
+                for (int i = 0; i < BN.Length; i++) bind[i] = rig[i].worldToLocalMatrix * go.transform.localToWorldMatrix;
+                mesh.bindposes = bind;
+                var smr = go.AddComponent<SkinnedMeshRenderer>();
+                smr.sharedMesh = mesh; smr.bones = rig; smr.rootBone = rig[0]; smr.sharedMaterial = himMat;
+                smr.updateWhenOffscreen = true;
+                smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                return true;
+            }
+            catch (System.Exception e) { Debug.LogWarning("[Thinking It] HIM rig failed: " + e.Message); return false; }
+        }
+
+        // copy the procedural skeleton's pose (which the animation code drives) onto the real bones
+        void SyncRig()
+        {
+            if (rig == null) return;
+            rig[0].localPosition = BH[0] + new Vector3(0, (pelvis.localPosition.y - 0.98f) / MODEL_H, 0);
+            rig[0].localRotation = pelvis.localRotation;
+            rig[1].localRotation = torso.localRotation;
+            rig[4].localRotation = head.localRotation;
+            for (int i = 0; i < 2; i++)
+            {
+                int a = i == 0 ? 5 : 11, l = i == 0 ? 8 : 14;
+                rig[a].localRotation = shoulder[i].localRotation;
+                rig[a + 1].localRotation = elbow[i].localRotation;
+                rig[a + 2].localRotation = wrist[i].localRotation;
+                rig[l].localRotation = hip[i].localRotation;
+                rig[l + 1].localRotation = knee[i].localRotation;
+                rig[l + 2].localRotation = ankle[i].localRotation;
             }
         }
 
@@ -448,6 +536,7 @@ namespace ThinkingIt
 
         void Animate(float dt)
         {
+            if (himMat != null) himMat.SetColor("_BaseColor", HIM_DARK);
             float runK = Mathf.Clamp01((spd - WALK * 1.3f) / (RUN * 0.65f - WALK * 1.3f));
             float moveK = Mathf.Clamp01(spd / 1.2f);
             phase += spd * dt * Mathf.Lerp(3.9f, 2.1f, runK);
@@ -485,6 +574,7 @@ namespace ThinkingIt
             }
             float curl = charging ? 35f : (state == S.Turn ? 55f + Mathf.Sin(time * 11f) * 15f : 28f);
             for (int i = 0; i < fingers.Count; i++) fingers[i].localRotation = Ex(-curl * (i % 2 == 0 ? 0.8f : 1.1f));
+            SyncRig();
         }
 
         // ------------------------------------------------------------------ the jumpscare
@@ -508,6 +598,7 @@ namespace ThinkingIt
                 tr.position = new Vector3(g.px + f.x * dd, -0.18f, g.pz + f.y * dd);
                 tr.rotation = Quaternion.Euler(0, scareYaw * Mathf.Rad2Deg, 0);
                 float tm = Time.time;
+                if (himMat != null) himMat.SetColor("_BaseColor", HIM_SCARE);
                 hip[0].localRotation = hip[1].localRotation = Ex(0);
                 pelvis.localPosition = new Vector3(0, 0.98f, 0); pelvis.localRotation = Quaternion.identity;
                 torso.localRotation = Ex(28f);
@@ -519,6 +610,7 @@ namespace ThinkingIt
                 }
                 head.localRotation = Ex(-18f, Mathf.Sin(tm * 40f) * 10f, 0);
                 jaw.localRotation = Ex(48f + Mathf.Sin(tm * 36f) * 10f);
+                SyncRig();
             }
             else if (root.activeSelf) { root.SetActive(false); scareInit = false; }
         }

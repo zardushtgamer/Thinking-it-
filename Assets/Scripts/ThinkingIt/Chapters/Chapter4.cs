@@ -355,15 +355,15 @@ namespace ThinkingIt
             Bx(0.14f, 0.09f, 0.07f, null, cam);
             Cy(0.03f, 0.03f, 0.05f, 12, null, cam).At(0, 0, 0.055f).Rot(PI / 2, 0, 0);
             Bx(0.03f, 0.02f, 0.03f, null, cam).At(-0.04f, 0.055f, 0);
-            cam.At(cx(28) - 0.2f, 0.81f, 6 * C - 0.4f).RotY(PI + 0.4f);
+            cam.At(cx(28) - 0.2f, 0.91f, 6 * C - 0.4f).RotY(PI + 0.4f);
             AddFocusable("camera", cam, null, cam.transform.position, 2.8f, Mats.Std(MathX.Hex(0x2a2a2a), 0.4f, 0.5f));
             memoryGlow["camera"] = w.PointLight(cam.transform.position + new Vector3(0, 0.35f, 0), MathX.Hex(0xc8d8ff), 0.12f, 1.6f);
             var dlamp = Grp("desk lamp");
             Cy(0.07f, 0.08f, 0.02f, 12, darkWood, dlamp);
             Cy(0.01f, 0.01f, 0.35f, 6, darkWood, dlamp).At(0, 0.17f, 0);
             Cy(0.05f, 0.12f, 0.12f, 16, Mats.Std(MathX.Hex(0xe8d8b0), 1, 0, null, null, null, 1, MathX.Hex(0xffb060), 0.8f, true), dlamp, true).At(0, 0.36f, 0);
-            dlamp.At(cx(28) + 0.22f, 0.8f, 6 * C - 0.45f).NoShadow();
-            w.PointLight(new Vector3(cx(28) + 0.22f, 1.2f, 6 * C - 0.6f), MathX.Hex(0xffb070), 1.1f, 8, true);
+            dlamp.At(cx(28) + 0.22f, 0.89f, 6 * C - 0.45f).NoShadow();
+            w.PointLight(new Vector3(cx(28) + 0.22f, 1.3f, 6 * C - 0.6f), MathX.Hex(0xffb070), 1.1f, 8, true);
             var wardrobe = Grp("wardrobe");
             Bx(1.2f, 2.0f, 0.55f, wood, wardrobe).At(0, 1.0f, 0);
             Bx(0.01f, 1.9f, 0.01f, darkWood, wardrobe).At(0, 1.0f, 0.28f);

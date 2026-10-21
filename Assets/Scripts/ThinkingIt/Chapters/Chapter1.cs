@@ -19,8 +19,8 @@ namespace ThinkingIt
         const int TAPES_TOTAL = 6;
         // the stairwell door: a 5-digit code, one digit in each of five places
         const string CODE = "38417";
-        static readonly Dictionary<string, int> DIGIT_AT = new Dictionary<string, int> { ["tutorial"] = 0, ["memo"] = 1, ["w_chart"] = 2, ["teoNote"] = 3, ["w_code"] = 4 };
-        static readonly string[] DIGIT_PLACE = { "the orientation terminal in the lobby", "the memo on the offices desk", "the bed chart in the wards", "Teo's note", "the dead maintenance worker" };
+        static readonly Dictionary<string, int> DIGIT_AT = new Dictionary<string, int> { ["tutorial"] = 0, ["c1_d2"] = 1, ["c1_d3"] = 2, ["c1_d4"] = 3, ["w_code"] = 4 };
+        static readonly string[] DIGIT_PLACE = { "the orientation terminal in the lobby", "a scrap of paper on the offices desk", "a scrap of paper in the wards", "a scrap of paper near the lobby", "the dead maintenance worker" };
         readonly bool[] digitSeen = new bool[5];
         KeypadGui keypad;
         bool solved;
@@ -248,6 +248,13 @@ namespace ThinkingIt
                 AddInteract("doc", "doc", id, p.transform.position, p, "read");
             };
             var paper = PaperTex();
+            System.Action<int, int, float, float, string> digitPaper = (x, y, ox, oz, id) =>
+            {
+                var p = Pl(0.16f, 0.2f, Mats.Unlit(MathX.Hex(0xc8c2b0), paper));
+                p.At(cx(x) + ox, 0.906f, cx(y) + oz).Rot(-PI / 2, 0, Random.value - 0.5f);
+                World.Tagged(p, "doc", id);
+                AddInteract("doc", "doc", id, p.transform.position, p, "read");
+            };
             desk(4, 2, 0); doc(4, 2, "brochure", paper);
             {   // the orientation terminal on the reception desk: a green screen that explains the rules
                 var termScr = Paint(128, 96, (pp, Wt, Ht) =>
@@ -264,9 +271,9 @@ namespace ThinkingIt
                 AddInteract("doc", "doc", "tutorial", orientTerm.transform.position + new Vector3(0, 0.2f, 0), orientTerm, "use the terminal");
                 w.PointLight(orientTerm.transform.position + new Vector3(0, 0.45f, 0.5f), Col(0x40ff80), 0.2f, 3f);
             }
-            desk(10, 5, 0); doc(10, 5, "teoNote", paper);
+            desk(10, 5, 0); doc(10, 5, "teoNote", paper); digitPaper(10, 5, 0.42f, 0.05f, "c1_d4");
             desk(23, 2, 0); doc(23, 2, "session41", paper);
-            desk(27, 6, 0.4f); doc(27, 6, "memo", paper);
+            desk(27, 6, 0.4f); doc(27, 6, "memo", paper); digitPaper(27, 6, 0.42f, -0.1f, "c1_d2");
             desk(16, 12, 0); doc(16, 12, "drawing", DrawingTex());
             {   // an old television on the maintenance desk, replacing the CRT (faces the chair)
                 var d = desk(22, 5, -0.3f);
@@ -278,7 +285,7 @@ namespace ThinkingIt
                 var mp = BakedMesh.Spawn(w, "Megaphone", d.transform);
                 if (mp != null) mp.At(-0.35f, 0.885f, 0.02f).RotY(-PI / 2 + 0.4f);
             }
-            desk(7, 9, 0); doc(7, 9, "w_chart", paper);
+            desk(7, 9, 0); doc(7, 9, "w_chart", paper); digitPaper(7, 9, 0.42f, 0.05f, "c1_d3");
             desk(5, 13, PI); doc(5, 13, "w_nurse", paper);
             { var p = Pl(0.36f, 0.46f, Mats.Unlit(MathX.Hex(0xb8b2a4), paper)); p.At(cx(3), 0.01f, cx(15) - 0.4f).Rot(-PI / 2, 0, 0.4f); World.Tagged(p, "doc", "w_iso"); AddInteract("doc", "doc", "w_iso", p.transform.position, p, "read"); }
             { var p = Pl(0.3f, 0.4f, Mats.Unlit(MathX.Hex(0xb8b2a4), paper)); p.At(29 * C - 0.03f, 1.45f, cx(13) + 1.3f).RotY(-PI / 2); World.Tagged(p, "doc", "w_fuse"); AddInteract("doc", "doc", "w_fuse", p.transform.position, p, "read"); }
@@ -604,9 +611,21 @@ namespace ThinkingIt
             System.Action<int, int, float, float, bool> fluoro = null;
             fluoro = fluoroFn = (x, y, intensity, dist, shadow) =>
             {
-                Bx(1.5f, 0.08f, 0.4f, Mats.Std(MathX.Hex(0x4a4c48), 0.6f, 0.4f)).At(cx(x), WALL_H - 0.04f, cx(y));
+                const float FS = 1.7f;   // the model is 0.91 m long; scale it up to ceiling-fixture size
+                var fbody = BakedMesh.Spawn(w, "FluoroBody", null, FS, 0.5f);
+                if (fbody != null) fbody.At(cx(x), WALL_H, cx(y)).NoShadow();
+                else Bx(1.5f, 0.08f, 0.4f, Mats.Std(MathX.Hex(0x4a4c48), 0.6f, 0.4f)).At(cx(x), WALL_H - 0.04f, cx(y));
+                var fglassMesh = fbody != null ? BakedMesh.Load("FluoroGlass") : null;
                 var F = new Fluoro { baseI = intensity, startAt = 0.3f + Random.value * 2.4f, flicker = Random.value < 0.35f };
-                foreach (var dz in new[] { -0.09f, 0.09f })
+                if (fglassMesh != null)
+                {
+                    var tm = Mats.Std(MathX.Hex(0x7a7c7a), 0.3f, 0, null, null, null, 1, MathX.Hex(0xeaf2ff), 0, false, false);
+                    var gl = w.MeshObj(fglassMesh, tm, null, "FluoroGlass");
+                    gl.transform.localScale = new Vector3(FS, FS, FS);
+                    gl.At(cx(x), WALL_H, cx(y)).NoShadow();
+                    F.tubes.Add(tm);
+                }
+                else foreach (var dz in new[] { -0.09f, 0.09f })
                 {
                     var tm = Mats.Std(MathX.Hex(0x7a7c7a), 0.3f, 0, null, null, null, 1, MathX.Hex(0xeaf2ff), 0, false, false);
                     Bx(1.3f, 0.045f, 0.12f, tm).At(cx(x), WALL_H - 0.1f, cx(y) + dz).NoShadow();
@@ -703,7 +722,7 @@ namespace ThinkingIt
             foreach (var E in emergencies)
             {
                 float k = 0.55f + Mathf.Sin(time * 1.8f + E.phase) * 0.35f;
-                E.l.intensity = k * 0.8f * World.LK; Mats.SetEmission(E.m, MathX.Hex(0xff2010), 0.3f + k * 1.2f);
+                E.l.intensity = k * 0.8f * World.LK * World.DarkF; Mats.SetEmission(E.m, MathX.Hex(0xff2010), (0.3f + k * 1.2f) * World.DarkF);
             }
             foreach (var s in screens) Mats.SetEmission(s.m, MathX.Hex(0x6affc0), power && powerT > s.startAt ? 0.55f + Random.value * 0.2f : 0);
             foreach (var F in fluoros)
@@ -717,8 +736,8 @@ namespace ThinkingIt
                     if (level != F.last && level == 1 && t < 1.3f && Random.value < 0.6f) au.Flicker();
                     F.last = level;
                 }
-                F.l.intensity = F.baseI * level * World.LK;
-                foreach (var m in F.tubes) Mats.SetEmission(m, MathX.Hex(0xeaf2ff), level * 1.8f);
+                F.l.intensity = F.baseI * level * World.LK * World.DarkF;
+                foreach (var m in F.tubes) Mats.SetEmission(m, MathX.Hex(0xeaf2ff), level * 1.8f * World.DarkF);
                 Mats.SetAlpha(F.beam, level * 0.04f);
                 if (level > 0.5f) { float d = MathX.Hypot(F.pos.x - g.px, F.pos.z - g.pz); if (d < nd) { nd = d; nearest = F; } }
             }
@@ -808,6 +827,7 @@ namespace ThinkingIt
 
         public override bool CustomIt(float dt) { if (him != null) him.Update(dt); return true; }
         public override bool CustomItActive => true;
+        public override bool ItHere => him != null && him.Active;
         public override bool CustomJumpscare => true;
         public override void Jumpscare(float t, float dt) { if (him != null) him.Scare(t, dt); }
         public override void OnRespawn() { if (him != null) him.Reset(14f); }
@@ -829,8 +849,21 @@ namespace ThinkingIt
         Texture2D tex;
         void OnGUI()
         {
-            if (!open) return;
             if (tex == null) { tex = new Texture2D(1, 1); tex.SetPixel(0, 0, Color.white); tex.Apply(); }
+            if (known != null)
+            {
+                bool any = false; string k = ""; const string dig = "38417";
+                for (int i = 0; i < 5; i++) { bool f = i < known.Length && known[i]; any |= f; k += (f ? dig[i].ToString() : "_") + (i < 4 ? "  " : ""); }
+                if (any)
+                {
+                    var st = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
+                    var o = GUI.color;
+                    GUI.color = new Color(0, 0, 0, 0.5f); GUI.DrawTexture(new Rect(18, Screen.height - 78, 210, 56), tex);
+                    GUI.color = new Color(0.27f, 1f, 0.52f, 0.95f); GUI.Label(new Rect(30, Screen.height - 78, 200, 56), k, st);
+                    GUI.color = o;
+                }
+            }
+            if (!open) return;
             float W = Screen.width, H = Screen.height, bw = 520, bh = 300, x = (W - bw) / 2, y = (H - bh) / 2;
             var old = GUI.color;
             GUI.color = new Color(0, 0, 0, 0.88f); GUI.DrawTexture(new Rect(x, y, bw, bh), tex);
@@ -844,13 +877,6 @@ namespace ThinkingIt
             if (msg != null) GUI.color = new Color(1f, 0.25f, 0.2f);
             GUI.Label(new Rect(x, y + 60, bw, 90), msg ?? shown, big);
             GUI.color = new Color(0.27f, 1f, 0.52f, 0.7f);
-            if (known != null)
-            {
-                string k = ""; var ord = new[] { "1st", "2nd", "3rd", "4th", "5th" }; var dig = "38417";
-                for (int i = 0; i < 5; i++) k += ord[i] + ": " + (i < known.Length && known[i] ? dig[i].ToString() : "?") + (i < 4 ? "     " : "");
-                GUI.Label(new Rect(x, y + 170, bw, 24), "digits you have found", small);
-                GUI.Label(new Rect(x, y + 195, bw, 24), k, small);
-            }
             GUI.Label(new Rect(x, y + 255, bw, 24), "type the digits   -   Backspace: delete   -   Esc / E: step back", small);
             GUI.color = old;
         }

@@ -12,6 +12,8 @@ namespace ThinkingIt
     {
         public const float C = 2f, WALL_H = 3.2f, EYE = 1.65f;
         public static float AMB = 4.5f;   // ambient light multiplier (on top of each chapter's Ambient)
+        public static float Dark = 0f;     // 0..1: how far the blackout has gone (HIM is out)
+        public static float DarkF => 1f - 0.94f * Dark;   // multiplier for every light while it is dark
         public static float LK = 9f;   // light intensity scale: the web version used non-physical falloff
 
         public int W, H;

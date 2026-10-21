@@ -70,6 +70,8 @@ namespace ThinkingIt
         public abstract EndInfo End();
         public virtual bool AllowEyes => true;
         public virtual bool CustomItActive => false;
+        public virtual bool ItHere => false;           // a custom monster is out hunting: the lights die while it is
+
         // a chapter with its own monster can replace the "it" jumpscare when you're caught (t = seconds since caught)
         public virtual bool CustomJumpscare => false;
         public virtual void Jumpscare(float t, float dt) { }

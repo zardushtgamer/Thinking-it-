@@ -20,26 +20,28 @@ namespace ThinkingIt
                 + "\f[ LOOKING ]\n\nSome things here are unfinished.\nA pale outline where a door should be.\nA gap where the floor should be.\n\nStare at them. Hold your gaze.\nThe longer you look, the more real they become.\n\nThe building notices when you do this."
                 + "\f[ SPRINTING ]\n\nHold SHIFT while walking to run.\n\nRunning is faster, but it is loud.\nThe bar at the bottom of your screen is your breath.\nWhen it runs out you must walk until it returns.\n\nWherever you run, it will come to look."
                 + "\f[ IT ]\n\nSubject 14 described a tall shape\nstanding in the corner of the room.\n\nIt does not move while you look at it.\nIt is drawn to the places you keep looking.\n\nIt is made of attention.\nWe do not know what it wants.\nWe know it gets heavier when it is described."
-                + "\f[ DOOR CODE ]\n\nThe stairwell door is sealed with a 5-digit code.\nDr. Lund split it up so no one person held it.\n\nThis terminal holds the 1st digit:\n\n          3\n\nThe others are written down in the offices,\nthe wards, a note of Teo's,\nand on whoever died last."
+                + "\f[ DOOR CODE ]\n\n3  _  _  _  _"
                 + "\f[ END OF ORIENTATION ]\n\nFind the code. Find the way out.\nAnd whatever you do —\n\nDon't think about it.\n\n— Dr. H. Lund")
             { terminal = true },
             ["brochure"] = new Doc("Halvard Institute for Cognitive Research", false,
                 "SUMMER VOLUNTEER PROGRAM — 1998\n\nPaid participation for young people aged 13–17.\nRoom and board provided. Six weeks.\n\n\"Learn to quiet your mind.\"\n\n<i>Project White Bear is a study of healthy forgetting.</i>"),
             ["teoNote"] = new Doc("A note, in Teo's handwriting", false,
-                "The stairwell door has a five-digit code and Lund split it between the rooms. I found the 4th digit: 1. The other four are out there.\n\nThe doors are open. Something else is, too. It is fast and it cannot turn. Use that.\n\nI'm not crazy.\n\n— T"),
+                "Everything I found is in this building somewhere.\n\nThe doors are open. Something else is, too. It is fast and it cannot turn. Use that.\n\nI'm not crazy.\n\n— T"),
             ["session41"] = new Doc("Session Log 41", true,
                 "Subject 14 (M.V., age 14) instructed to suppress target memory (the lake).\n\nSuppression successful.\n\nResidual effect: subject reports \"someone standing in the corner of the room\" whenever she stops trying. It is tall. It does not move while she looks at it.\n\nWe have instructed her not to look at it."),
             ["memo"] = new Doc("Internal Memo — RE: the shape", true,
-                "Effective immediately, staff will no longer refer to it by name.\n\nStaff will not describe it in writing. Staff will not draw it.\n\nEvery description we write makes it heavier. It has started standing in the corridors when no subject is present.\n\n— Dr. H. Lund\n\nP.S. The stairwell door is on a five-digit code now. I have split it between staff. Mine is the 2nd digit: 8."),
+                "Effective immediately, staff will no longer refer to it by name.\n\nStaff will not describe it in writing. Staff will not draw it.\n\nEvery description we write makes it heavier. It has started standing in the corridors when no subject is present.\n\n— Dr. H. Lund"),
             ["drawing"] = new Doc("A crayon drawing", true,
                 "A white bear, standing over blue water.\nSomething small is under the water.\n\nWritten on the back, in pencil:\n<i>\"Found in Subject 14's room. She says she didn't draw it. She says she doesn't remember the lake.\"</i>"),
 
             ["w_chart"] = new Doc("Ward A — bed chart", false,
-                "Bed 1: Participant 03. Discharged.\nBed 2: Participant 07. Moved to the apartment wing.\nBed 3: Subject 14. <i>Lights to remain ON at all times.</i>\nBed 4: Participant 11. Discharged.\nBed 5: —\nBed 6: —\n\nNight staff: do not wake Subject 14. Do not ask her what she is looking at.\n\nPinned to the board: <i>stairwell door code, 3rd digit: 4</i>"),
+                "Bed 1: Participant 03. Discharged.\nBed 2: Participant 07. Moved to the apartment wing.\nBed 3: Subject 14. <i>Lights to remain ON at all times.</i>\nBed 4: Participant 11. Discharged.\nBed 5: —\nBed 6: —\n\nNight staff: do not wake Subject 14. Do not ask her what she is looking at."),
             ["w_nurse"] = new Doc("Night nurse's log", true,
                 "02:10 — Bed 3 awake again. Says it is standing at the foot of the bed.\n02:40 — Checked. Nothing there. There was a dent in the mattress at the foot of the bed, as if someone heavy had been sitting.\n03:15 — Bed 3 says it has stopped standing. It sits now. It is learning.\n03:16 — I am requesting a transfer."),
-            ["w_code"] = new Doc("Maintenance worker's notebook", false,
-                "Power's off again. Lund gave me the last digit of the stairwell code in case the lights fail: 7.\n\nI wrote it on my hand too, in case I forget.\n\nSomething is behind me. It is not slowing down."),
+            ["w_code"] = new Doc("Notebook", false, "_  _  _  _  7"),
+            ["c1_d2"] = new Doc("Scrap of paper", false, "_  8  _  _  _"),
+            ["c1_d3"] = new Doc("Scrap of paper", false, "_  _  4  _  _"),
+            ["c1_d4"] = new Doc("Scrap of paper", false, "_  _  _  1  _"),
             ["w_iso"] = new Doc("Scratched into the isolation room door", true,
                 "THEY PUT ME IN HERE SO IT WOULD HAVE NOWHERE TO STAND\n\nIT STANDS IN THE CORNER ANYWAY\n\nIF YOU CAN READ THIS IT CAN READ IT TOO\n\n— M"),
             ["w_fuse"] = new Doc("Maintenance note, taped to the breaker", false,

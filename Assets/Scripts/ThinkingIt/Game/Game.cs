@@ -49,6 +49,7 @@ namespace ThinkingIt
         public GState state = GState.Intro;
         public float time, dread;
         [System.NonSerialized] public MaraBody body;
+        Color ambBase, ambSet;
         public static bool DreadFx = false;   // screen distortion, heartbeat, whispers and shaking that follow dread (off for now)
         float FxDread => DreadFx ? dread : 0f;
 
@@ -457,10 +458,8 @@ namespace ThinkingIt
             }
             else
             {
-                float ddx = IT.x - px, ddz = IT.z - pz; if (MathX.Hypot(ddx, ddz) > 0.05f) yaw = Mathf.Atan2(-ddx, -ddz);
-                IT.state = "gone"; IT.cool = 5; au.Set(au.breath, 0);
-                itModel.SetVisible(true); itModel.SetScale(0.95f); itModel.lunge = 1;
-                itModel.coreMat.SetColor("_BaseColor", Color.black);
+                // no chapter monster: the old IT jumpscare is removed. It never appears; you just get caught.
+                IT.state = "gone"; IT.cool = 5; au.Set(au.breath, 0); itModel.SetVisible(false);
             }
             eyes = true; shake = 1.6f;
             au.Scream(1); timers.After(0.6f, au.CaughtSound);
@@ -655,24 +654,11 @@ namespace ThinkingIt
                     if (caughtT < JUMP) { shake = Mathf.Max(shake, 1.2f); pitch = Mathf.Lerp(pitch, 0, dt * 10); hud.SetCaught(false, 0, 0); }
                     else hud.SetCaught(true, caughtT - JUMP, time);
                 }
-                else if (caughtT < JUMP)
-                {
-                    // lunging from just out of reach to filling the screen
-                    var f = Fwd; float k = MathX.Smooth(Mathf.Clamp01(caughtT / 0.28f));
-                    float dd = Mathf.Lerp(1.7f, 0.42f, k);
-                    pitch = Mathf.Lerp(pitch, 0, dt * 10);
-                    itModel.Place(px + f.x * dd, pz + f.y * dd, px, pz, 0.04f);
-                    dd += Mathf.Max(0, itModel.HeadForward);   // put its face, not its feet, at that distance
-                    itModel.Place(px + f.x * dd, pz + f.y * dd, px, pz, 0.04f);
-                    itModel.SetHeight(World.EYE - itModel.HeadOffset + 0.05f);
-                    itModel.Flicker(caughtT < 0.3f || Random.value > 0.15f);
-                    shake = Mathf.Max(shake, 1.2f);
-                    hud.SetCaught(false, 0, 0);
-                }
                 else
                 {
-                    if (itModel.Visible) itModel.SetVisible(false);
-                    hud.SetCaught(true, caughtT - JUMP, time);
+                    // no jumpscare model any more: just the shake, then black
+                    if (caughtT < JUMP) { shake = Mathf.Max(shake, 1.2f); pitch = Mathf.Lerp(pitch, 0, dt * 10); hud.SetCaught(false, 0, 0); }
+                    else hud.SetCaught(true, caughtT - JUMP, time);
                 }
                 if (caughtT > 3.4f + JUMP) Respawn();
             }
@@ -826,12 +812,19 @@ namespace ThinkingIt
             for (int i = 0; i < w.heat.Length; i++) w.heat[i] *= 1 - dt * 0.02f;
             CorruptDoc();
 
+            // blackout while HIM is out: the lights die, the ambient drops, the torch dims to almost nothing
+            World.Dark = Mathf.MoveTowards(World.Dark, ch.ItHere && state == GState.Play ? 1f : 0f, dt / (ch.ItHere ? 1.2f : 3f));
             ch.Tick(dt);
+            {
+                var cur = RenderSettings.ambientLight;
+                if (cur != ambSet) ambBase = cur;
+                ambSet = ambBase * World.DarkF; RenderSettings.ambientLight = ambSet;
+            }
             if (state != GState.Play && state != GState.Cutscene) return;
 
             float fl = hall && zone == ch.HallZone ? 0 : (FxDread > 0.6f && Random.value < FxDread * 0.08f ? 0.2f : ch.FlashBase);
             if (flashOverride >= 0) fl = flashOverride;
-            flash.intensity = fl * World.LK * 2.2f;
+            flash.intensity = fl * World.LK * 2.2f * (1f - 0.82f * World.Dark);
 
             UpdateIt(dt);
             if (state != GState.Play && state != GState.Cutscene) return;

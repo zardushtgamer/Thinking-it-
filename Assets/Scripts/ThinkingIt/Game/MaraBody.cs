@@ -2,213 +2,152 @@ using UnityEngine;
 
 namespace ThinkingIt
 {
-    // Mara's body. You see your own arms and hands in front of you (they bob as you walk, pump when you run), and when you
-    // press E the right arm reaches out to the thing, closes its fingers, and brings it up to you. Look down and you see
-    // your coat, jeans and boots, walking along with you.
+    // Mara's body in first person: a rigged character model (17 bones, weights baked in MaraRig.bytes).
+    // The camera sits just in front of her chest; her head is shrunk to nothing so you never see inside it.
+    // Look down and you see her jacket, her legs and boots walking. Interact and her right arm reaches for the thing.
     public class MaraBody
     {
-        const float L1 = 0.30f, L2 = 0.27f, HAND = 0.16f;
-
-        class Arm
-        {
-            public GameObject root, upper, fore;
-            public Transform hand; public Transform[] fingers = new Transform[5];
-            public float side; public Vector3 S;
-        }
-
         readonly Game g;
-        readonly World w;
-        readonly Transform cam;
-        readonly Arm armL = new Arm(), armR = new Arm();
-        readonly GameObject armsRoot;
+        World w;
+        readonly GameObject bodyRoot;
+        Transform rigRoot;
+        Transform[] rig;
+
+        const float SCALE = 1.72f;        // the model is 1 unit tall
+        const float BACK = 0.12f;         // how far behind the camera her body stands
+        const float REACH_TIME = 0.9f, GRAB_AT = 0.42f;
+
+        // 17 bones, in the order the weights file was written
+        static readonly string[] BN = { "pelvis", "spine", "chest", "neck", "head", "uArmL", "fArmL", "handL", "thighL", "shinL", "footL", "uArmR", "fArmR", "handR", "thighR", "shinR", "footR" };
+        static readonly int[] BP = { -1, 0, 1, 2, 3, 2, 5, 6, 0, 8, 9, 2, 11, 12, 0, 14, 15 };
+        static readonly Vector3[] BH = {
+            new Vector3(0, .50f, -.02f), new Vector3(0, .58f, -.03f), new Vector3(0, .70f, -.03f), new Vector3(0, .83f, 0), new Vector3(0, .88f, 0),
+            new Vector3(-.115f, .79f, -.02f), new Vector3(-.14f, .58f, -.03f), new Vector3(-.145f, .45f, 0), new Vector3(-.065f, .50f, -.02f), new Vector3(-.07f, .27f, -.01f), new Vector3(-.07f, .07f, -.02f),
+            new Vector3(.115f, .79f, -.02f), new Vector3(.14f, .58f, -.03f), new Vector3(.145f, .45f, 0), new Vector3(.065f, .50f, -.02f), new Vector3(.07f, .27f, -.01f), new Vector3(.07f, .07f, -.02f) };
+        const int PELVIS = 0, SPINE = 1, HEAD = 4, UL = 5, UR = 11, TL = 8, TR = 14;
 
         // reaching
-        float reachT = -1; const float REACH_TIME = 0.75f;
-        Vector3 reachLocal; bool grabbed; System.Action onGrab;
-        GameObject held;
-        // the chapters are one map: her legs and coat follow her into whichever level is showing
-        public void MoveTo(World nw) { if (bodyRoot != null) bodyRoot.transform.SetParent(nw.root, false); }
-
-        public bool Busy => reachT >= 0;
-
-        // legs and torso
-        readonly GameObject bodyRoot;
-        Transform hipL, hipR, kneeL, kneeR;
+        float reachT = -1; Vector3 reachTarget; bool grabbed; System.Action onGrab;
         float walkPhase, bodyYaw, lastX, lastZ, moveSpeed;
 
-        static Material skin, coat, jeans, boot, paper, tapeM;
+        public bool Busy => reachT >= 0;
+        public void MoveTo(World nw) { w = nw; if (bodyRoot != null) bodyRoot.transform.SetParent(nw.root, false); }
 
         public MaraBody(Game game)
         {
-            g = game; w = game.w; cam = game.cam.transform;
-            skin = Mats.Std(MathX.Hex(0xd9a98e), 0.55f, 0f);
-            coat = Mats.Std(MathX.Hex(0x3b4a55), 0.85f, 0f);
-            jeans = Mats.Std(MathX.Hex(0x2a3244), 0.9f, 0f);
-            boot = Mats.Std(MathX.Hex(0x1e1a18), 0.6f, 0f);
-            paper = Mats.Std(MathX.Hex(0xe0d8c4), 0.9f, 0f, null, null, null, 1, null, 1, true);
-            tapeM = Mats.Std(MathX.Hex(0x1a1a1a), 0.4f, 0f);
-
-            armsRoot = new GameObject("Mara arms"); armsRoot.transform.SetParent(cam, false);
-            MakeArm(armL, -1); MakeArm(armR, 1);
-
+            g = game; w = game.w;
             bodyRoot = new GameObject("Mara body"); bodyRoot.transform.SetParent(w.root, false);
-            BuildBody();
+            BuildRig();
             lastX = g.px; lastZ = g.pz; bodyYaw = (g.yaw + Mathf.PI) * Mathf.Rad2Deg;
         }
 
-        GameObject Seg(float rt, float rb, float len, Material m, Transform parent)
+        void BuildRig()
         {
-            var go = w.Cyl(rt, rb, len, 10, m, parent); go.NoShadow(); return go;
-        }
-
-        void MakeArm(Arm a, float side)
-        {
-            a.side = side; a.S = new Vector3(side * 0.23f, -0.22f, -0.05f);
-            a.root = new GameObject(side < 0 ? "arm L" : "arm R"); a.root.transform.SetParent(armsRoot.transform, false);
-            a.upper = Seg(0.048f, 0.042f, L1, coat, a.root.transform);
-            a.fore = new GameObject("forearm"); a.fore.transform.SetParent(a.root.transform, false);
-            Seg(0.043f, 0.036f, L2 * 0.78f, coat, a.fore.transform).At(0, -L2 * 0.11f, 0);          // sleeve
-            Seg(0.03f, 0.026f, L2 * 0.26f, skin, a.fore.transform).At(0, L2 * 0.37f, 0);            // wrist
-            // hand: a palm and five fingers that can curl
-            var hand = new GameObject("hand"); hand.transform.SetParent(a.fore.transform, false); hand.transform.localPosition = new Vector3(0, L2 * 0.5f, 0);
-            a.hand = hand.transform;
-            w.Box(0.075f, 0.085f, 0.022f, skin, a.hand).At(0, 0.042f, 0).NoShadow();
-            for (int i = 0; i < 5; i++)
+            var hm = BakedMesh.Load("MaraModel");
+            var ta = Resources.Load<TextAsset>("ThinkingIt/Models/MaraRig");
+            if (hm == null || ta == null) { Debug.LogWarning("[Thinking It] Mara model or rig missing: no body"); return; }
+            try
             {
-                var fp = new GameObject("finger"); fp.transform.SetParent(a.hand, false);
-                bool thumb = i == 4;
-                fp.transform.localPosition = thumb ? new Vector3(-side * 0.04f, 0.02f, 0) : new Vector3(-0.026f + i * 0.0175f, 0.085f, 0);
-                if (thumb) fp.transform.localRotation = Quaternion.Euler(0, 0, side * 40f);
-                float len = thumb ? 0.05f : (i == 1 || i == 2 ? 0.075f : 0.065f);
-                w.Box(0.015f, len, 0.015f, skin, fp.transform).At(0, len / 2, 0).NoShadow();
-                a.fingers[i] = fp.transform;
+                var bw = new BoneWeight[hm.vertexCount];
+                using (var br = new System.IO.BinaryReader(new System.IO.MemoryStream(ta.bytes)))
+                {
+                    int vc = br.ReadInt32(), bc = br.ReadInt32();
+                    if (vc != hm.vertexCount || bc != BN.Length) { Debug.LogWarning("[Thinking It] Mara rig does not match her mesh"); return; }
+                    var idx = br.ReadBytes(vc * 4);
+                    for (int i = 0; i < vc; i++) { bw[i].boneIndex0 = idx[i * 4]; bw[i].boneIndex1 = idx[i * 4 + 1]; bw[i].boneIndex2 = idx[i * 4 + 2]; bw[i].boneIndex3 = idx[i * 4 + 3]; }
+                    for (int i = 0; i < vc; i++) { bw[i].weight0 = br.ReadSingle(); bw[i].weight1 = br.ReadSingle(); bw[i].weight2 = br.ReadSingle(); bw[i].weight3 = br.ReadSingle(); }
+                }
+                rigRoot = new GameObject("Mara rig").transform; rigRoot.SetParent(bodyRoot.transform, false);
+                rigRoot.localScale = Vector3.one * SCALE;
+                rig = new Transform[BN.Length];
+                for (int i = 0; i < BN.Length; i++)
+                {
+                    rig[i] = new GameObject(BN[i]).transform;
+                    rig[i].SetParent(BP[i] < 0 ? rigRoot : rig[BP[i]], false);
+                    rig[i].localPosition = BP[i] < 0 ? BH[i] : BH[i] - BH[BP[i]];
+                }
+                var go = new GameObject("Mara model"); go.transform.SetParent(rigRoot, false);
+                var mesh = Object.Instantiate(hm); mesh.boneWeights = bw;
+                var bind = new Matrix4x4[BN.Length];
+                for (int i = 0; i < BN.Length; i++) bind[i] = rig[i].worldToLocalMatrix * go.transform.localToWorldMatrix;
+                mesh.bindposes = bind;
+                var smr = go.AddComponent<SkinnedMeshRenderer>();
+                smr.sharedMesh = mesh; smr.bones = rig; smr.rootBone = rig[0];
+                smr.sharedMaterial = Mats.Std(Color.white, 0.8f, 0f, BakedMesh.Texture("MaraModel"));
+                smr.updateWhenOffscreen = true;
+                smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            armsRoot.SetActive(true);
-        }
-
-        // ---------------------------------------------------------------- legs and coat (seen when you look down)
-        void BuildBody()
-        {
-            var tr = bodyRoot.transform;
-            var chest = w.Box(0.42f, 0.5f, 0.24f, coat, tr).At(0, 1.2f, 0); chest.NoShadow();
-            w.Box(0.38f, 0.28f, 0.22f, coat, tr).At(0, 0.88f, 0).NoShadow();
-            w.Cyl(0.075f, 0.09f, 0.14f, 10, skin, tr).At(0, 1.52f, 0).NoShadow();
-            foreach (var sx in new[] { -1, 1 })
-            {
-                var hip = new GameObject(sx < 0 ? "hipL" : "hipR"); hip.transform.SetParent(tr, false); hip.transform.localPosition = new Vector3(sx * 0.1f, 0.82f, 0);
-                w.Cyl(0.09f, 0.07f, 0.42f, 10, jeans, hip.transform).At(0, -0.21f, 0).NoShadow();
-                var knee = new GameObject("knee"); knee.transform.SetParent(hip.transform, false); knee.transform.localPosition = new Vector3(0, -0.42f, 0);
-                w.Cyl(0.068f, 0.055f, 0.40f, 10, jeans, knee.transform).At(0, -0.2f, 0).NoShadow();
-                w.Box(0.1f, 0.09f, 0.26f, boot, knee.transform).At(0, -0.44f, 0.06f).NoShadow();
-                if (sx < 0) { hipL = hip.transform; kneeL = knee.transform; } else { hipR = hip.transform; kneeR = knee.transform; }
-            }
+            catch (System.Exception e) { Debug.LogWarning("[Thinking It] Mara rig failed: " + e.Message); rig = null; }
         }
 
         // ---------------------------------------------------------------- reaching
-        // reach for something in the world, close the hand on it, and call onGrab when the fingers close
+        // reach for something in the world; onGrab is called when her fingers would close on it
         public void Reach(Vector3 worldTarget, string kind, System.Action grabCb)
         {
-            reachLocal = cam.InverseTransformPoint(worldTarget);
-            reachT = 0; grabbed = false; onGrab = grabCb;
-            if (held) Object.Destroy(held);
-            held = null;
-            if (kind == "doc") { held = w.Pl(0.1f, 0.13f, paper, armR.hand); held.At(0, 0.06f, 0.02f).Rot(0, 0, 0); }
-            else if (kind == "tape" || kind == "recorder") { held = w.Box(0.09f, 0.02f, 0.06f, tapeM, armR.hand); held.At(0, 0.06f, 0.02f); }
-            if (held) { held.NoShadow(); held.SetActive(false); }
+            reachTarget = worldTarget; reachT = 0; grabbed = false; onGrab = grabCb;
         }
 
         // ---------------------------------------------------------------- per frame
+        static float Ease(float t) { t = Mathf.Clamp01(t); return t * t * (3 - 2 * t); }
+
         public void Tick(float dt)
         {
             bool show = g.state != GState.Caught && g.state != GState.End && g.state != GState.Intro;
-            if (armsRoot.activeSelf != show) armsRoot.SetActive(show);
             if (bodyRoot.activeSelf != show) bodyRoot.SetActive(show);
+            if (reachT >= 0)
+            {
+                reachT += dt;
+                if (!grabbed && reachT >= GRAB_AT) { grabbed = true; var cb = onGrab; onGrab = null; cb?.Invoke(); }
+                if (reachT >= REACH_TIME) reachT = -1;
+            }
             if (!show) return;
 
-            // how fast are we moving
             float moved = MathX.Hypot(g.px - lastX, g.pz - lastZ); lastX = g.px; lastZ = g.pz;
             float spd = dt > 0 ? moved / dt : 0; moveSpeed = Mathf.Lerp(moveSpeed, Mathf.Min(spd, 6f), dt * 10f);
             walkPhase += moved * 3.2f;
             bool run = g.Sprinting;
 
-            AnimateBody(dt, run);
-            AnimateArms(dt, run);
-        }
-
-        void AnimateBody(float dt, bool run)
-        {
             var f = g.Fwd;
-            bodyRoot.transform.position = new Vector3(g.px - f.x * 0.17f, 0, g.pz - f.y * 0.17f);
-            float want = (g.yaw + Mathf.PI) * Mathf.Rad2Deg;
-            bodyYaw = Mathf.LerpAngle(bodyYaw, want, dt * 9f);
+            bodyRoot.transform.position = new Vector3(g.px - f.x * BACK, 0, g.pz - f.y * BACK);
+            bodyYaw = Mathf.LerpAngle(bodyYaw, (g.yaw + Mathf.PI) * Mathf.Rad2Deg, dt * 9f);
             bodyRoot.transform.rotation = Quaternion.Euler(0, bodyYaw, 0);
-            float k = Mathf.Clamp01(moveSpeed / 1.6f), a = (run ? 0.75f : 0.45f) * k;
-            float s = Mathf.Sin(walkPhase);
-            hipL.localRotation = Quaternion.Euler(-s * a * Mathf.Rad2Deg, 0, 0);
-            hipR.localRotation = Quaternion.Euler(s * a * Mathf.Rad2Deg, 0, 0);
-            float kf = (run ? 1.1f : 0.6f) * k;
-            kneeL.localRotation = Quaternion.Euler(Mathf.Max(0, Mathf.Cos(walkPhase)) * kf * Mathf.Rad2Deg, 0, 0);
-            kneeR.localRotation = Quaternion.Euler(Mathf.Max(0, -Mathf.Cos(walkPhase)) * kf * Mathf.Rad2Deg, 0, 0);
+            if (rig == null) return;
+
+            float k = Mathf.Clamp01(moveSpeed / 1.6f), a = (run ? 42f : 26f) * k, s = Mathf.Sin(walkPhase), t = Time.time;
+            float kf = (run ? 62f : 34f) * k;
+            Quaternion X(float deg) => Quaternion.Euler(deg, 0, 0);
+            rig[PELVIS].localPosition = BH[PELVIS] + new Vector3(0, -Mathf.Abs(Mathf.Cos(walkPhase)) * 0.012f * k, 0);
+            rig[PELVIS].localRotation = Quaternion.Euler(0, s * 4f * k, 0);
+            rig[SPINE].localRotation = Quaternion.Euler((run ? 10f : 2f) * k, -s * 5f * k, 0);
+            rig[HEAD].localScale = Vector3.zero;                     // no head: the camera is inside it
+            rig[TL].localRotation = X(-s * a); rig[TR].localRotation = X(s * a);
+            rig[TL + 1].localRotation = X(Mathf.Max(0, Mathf.Cos(walkPhase)) * kf); rig[TR + 1].localRotation = X(Mathf.Max(0, -Mathf.Cos(walkPhase)) * kf);
+            rig[TL + 2].localRotation = X(s * a * 0.4f); rig[TR + 2].localRotation = X(-s * a * 0.4f);
+            float breathe = Mathf.Sin(t * 1.6f) * 1.5f;
+            rig[UL].localRotation = X(s * a * 0.7f + breathe); rig[UR].localRotation = X(-s * a * 0.7f - breathe);
+            rig[UL + 1].localRotation = X(-(8f + (run ? 40f : 0f) * k)); rig[UR + 1].localRotation = X(-(8f + (run ? 40f : 0f) * k));
+
+            if (reachT >= 0) ReachArm();
         }
 
-        static float Ease(float t) { t = Mathf.Clamp01(t); return t * t * (3 - 2 * t); }
-
-        void AnimateArms(float dt, bool run)
+        // her right arm goes out to the thing, holds while the fingers close, and comes back
+        void ReachArm()
         {
-            float t = Time.time, k = Mathf.Clamp01(moveSpeed / 1.6f);
-            for (int i = 0; i < 2; i++)
-            {
-                var a = i == 0 ? armL : armR;
-                float side = a.side;
-                // resting pose: hands low and in front, swaying with every step
-                float ph = walkPhase + (side > 0 ? 0 : Mathf.PI);
-                float bobY = Mathf.Sin(t * 1.6f + side) * 0.004f + Mathf.Abs(Mathf.Sin(walkPhase)) * 0.012f * k;
-                float swing = Mathf.Sin(ph) * (run ? 0.09f : 0.025f) * k;
-                var T = new Vector3(side * (0.14f + (run ? 0.03f : 0)), -0.31f + bobY + (run ? 0.05f : 0) + Mathf.Max(0, swing) * 0.2f, 0.40f + swing + (run ? 0.03f : 0));
-                float curl = run ? 0.7f : 0.25f;
-
-                if (a == armR && reachT >= 0)
-                {
-                    reachT += dt / REACH_TIME;
-                    float u = reachT;
-                    var shoulder = a.S;
-                    var away = reachLocal - shoulder;
-                    float dist = away.magnitude;
-                    var tgt = shoulder + away.normalized * Mathf.Min(dist - 0.12f, (L1 + L2) * 0.98f);
-                    if (tgt.z < 0.18f) tgt.z = 0.18f;
-                    var hold = new Vector3(0.09f, -0.10f, 0.30f);
-                    if (u < 0.42f) { T = Vector3.Lerp(T, tgt, Ease(u / 0.42f)); curl = Mathf.Lerp(0.25f, 0.05f, Ease(u / 0.42f)); }
-                    else if (u < 0.55f) { T = tgt; curl = Mathf.Lerp(0.05f, 1.35f, Ease((u - 0.42f) / 0.13f)); }
-                    else if (u < 0.85f) { T = Vector3.Lerp(tgt, hold, Ease((u - 0.55f) / 0.3f)); curl = 1.35f; }
-                    else { T = Vector3.Lerp(hold, T, Ease((u - 0.85f) / 0.15f)); curl = Mathf.Lerp(1.35f, 0.25f, Ease((u - 0.85f) / 0.15f)); }
-                    if (!grabbed && u >= 0.5f) { grabbed = true; var cb = onGrab; onGrab = null; if (held) held.SetActive(true); cb?.Invoke(); }
-                    if (held && u > 0.86f) held.SetActive(false);
-                    if (u >= 1f) { reachT = -1; if (held) { Object.Destroy(held); held = null; } }
-                }
-                Solve(a, T);
-                for (int f = 0; f < 5; f++) a.fingers[f].localRotation = Quaternion.Euler(curl * Mathf.Rad2Deg * (f == 4 ? 0.6f : 1f), 0, f == 4 ? a.side * 40f : 0);
-            }
-        }
-
-        // two-bone arm: shoulder S, wrist T (both in camera space)
-        void Solve(Arm a, Vector3 T)
-        {
-            var S = a.S; var d = T - S; float dist = Mathf.Clamp(d.magnitude, 0.12f, L1 + L2 - 0.005f); var dir = d.normalized;
-            float ax = (L1 * L1 - L2 * L2 + dist * dist) / (2 * dist), h = Mathf.Sqrt(Mathf.Max(0, L1 * L1 - ax * ax));
-            var pole = new Vector3(a.side * 0.55f, -1f, -0.15f);
-            pole -= dir * Vector3.Dot(pole, dir); pole.Normalize();
-            var E = S + dir * ax + pole * h;
-            var W = S + dir * dist;
-            Place(a.upper.transform, S, E);
-            var fr = a.fore.transform;
-            fr.localPosition = (E + W) * 0.5f;
-            fr.localRotation = Quaternion.FromToRotation(Vector3.up, (W - E).normalized);
-        }
-
-        static void Place(Transform t, Vector3 from, Vector3 to)
-        {
-            t.localPosition = (from + to) * 0.5f;
-            t.localRotation = Quaternion.FromToRotation(Vector3.up, (to - from).normalized);
+            float p = reachT / REACH_TIME;
+            float wgt = p < 0.35f ? Ease(p / 0.35f) : (p < 0.55f ? 1f : Ease(1f - (p - 0.55f) / 0.45f));
+            var u = rig[UR]; var fo = rig[UR + 1]; var h = rig[UR + 2];
+            Vector3 S = u.position, E = fo.position, Wp = h.position;
+            float l1 = (E - S).magnitude, l2 = (Wp - E).magnitude;
+            Vector3 dir = reachTarget - S; float dist = Mathf.Max(0.05f, dir.magnitude);
+            float d = Mathf.Min(dist, (l1 + l2) * 0.95f);
+            Vector3 a = dir / dist, T = S + a * d;
+            // the elbow bends out and down
+            Vector3 pole = bodyRoot.transform.right * 0.7f + Vector3.down * 0.6f;
+            Vector3 pd = pole - Vector3.Dot(pole, a) * a; pd = pd.sqrMagnitude < 1e-5f ? Vector3.down : pd.normalized;
+            float x = (d * d + l1 * l1 - l2 * l2) / (2f * d), y = Mathf.Sqrt(Mathf.Max(0, l1 * l1 - x * x));
+            Vector3 Ep = S + a * x + pd * y;
+            u.rotation = Quaternion.Slerp(u.rotation, Quaternion.FromToRotation(E - S, Ep - S) * u.rotation, wgt);
+            fo.rotation = Quaternion.Slerp(fo.rotation, Quaternion.FromToRotation(h.position - fo.position, T - fo.position) * fo.rotation, wgt);
         }
     }
 }
